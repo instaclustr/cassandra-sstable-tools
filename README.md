@@ -76,7 +76,7 @@ Tool for finding largest partitions. Reads the Index.db files so is relatively q
 | -f <files> | Comma separated list of Data.db sstables to filter on                           |
 
 ### Output ###
-| Summary: Summary statistics about partitions                                                                                      |
+| Summary: Summary statistics about partitions                           |                                                          |
 |------------------------------------------------------------------------|----------------------------------------------------------|
 | Column                                                                 | Description                                              |
 | Count (Size)                                                           | Number of partition keys on this node                    |
@@ -89,21 +89,21 @@ Tool for finding largest partitions. Reads the Index.db files so is relatively q
 | Average (Size)                                                         | Average (mean) uncompressed partition size               |
 | Average (SSTable)                                                      | Average (mean) number of sstables a partition belongs to |
 
-| Largest partitions: The top N largest partitions                                                                                  |
+| Largest partitions: The top N largest partitions                       |                                                          |
 |------------------------------------------------------------------------|----------------------------------------------------------|
 | Column                                                                 | Description                                              |
 | Key                                                                    | The partition key                                        |
 | Size                                                                   | Total uncompressed size of the partition                 |
 | SSTable Count                                                          | Number of sstables that contain the partition            |
 
-| SSTable Leaders: The top N partitions that belong to the most sstables                                                            |
+| SSTable Leaders: The top N partitions that belong to the most sstables |                                                          |
 |------------------------------------------------------------------------|----------------------------------------------------------|
 | Column                                                                 | Description                                              |
 | Key                                                                    | The partition key                                        |
 | SSTable Count                                                          | Number of sstables that contain the partition            |
 | Size                                                                   | Total uncompressed size of the partition                 |
 
-| SSTables: Metadata about sstables as it relates to partitions.                                                                    |
+| SSTables: Metadata about sstables as it relates to partitions.         |                                                          |
 |------------------------------------------------------------------------|----------------------------------------------------------|
 | Column                                                                 | Description                                              |
 | SSTable                                                                | Data.db filename of SSTable                              |
@@ -130,7 +130,7 @@ Tool for getting detailed cell statistics that can help identify issues with dat
 | -f <files> | Comma separated list of Data.db sstables to filter on                           |
 
 ### Output ###
-| Summary: Summary statistics about partitions                                                            |
+| Summary: Summary statistics about partitions |                                                          |
 |----------------------------------------------|----------------------------------------------------------|
 | Column                                       | Description                                              |
 | Count (Size)                                 | Number of partition keys on this node                    |
@@ -143,7 +143,7 @@ Tool for getting detailed cell statistics that can help identify issues with dat
 | Average (Size)                               | Average (mean) uncompressed partition size               |
 | Average (SSTable)                            | Average (mean) number of sstables a partition belongs to |
 
-| Largest partitions: Partitions with largest uncompressed size                                                                    |
+| Largest partitions: Partitions with largest uncompressed size |                                                                  |
 |---------------------------------------------------------------|------------------------------------------------------------------|
 | Column                                                        | Description                                                      |
 | Key                                                           | The partition key                                                |
@@ -153,7 +153,7 @@ Tool for getting detailed cell statistics that can help identify issues with dat
 | Cells                                                         | Number of cells in the partition                                 |
 | SSTable Count                                                 | Number of sstables that contain the partition                    |
 
-| Widest partitions: Partitions with the most cells                                                                    |
+| Widest partitions: Partitions with the most cells |                                                                  |
 |---------------------------------------------------|------------------------------------------------------------------|
 | Column                                            | Description                                                      |
 | Key                                               | The partition key                                                |
@@ -163,7 +163,7 @@ Tool for getting detailed cell statistics that can help identify issues with dat
 | Size                                              | Total uncompressed size of the partition                         |
 | SSTable Count                                     | Number of sstables that contain the partition                    |
 
-| Tombstone Leaders: Partitions with the most tombstones                                                                    |
+| Tombstone Leaders: Partitions with the most tombstones |                                                                  |
 |--------------------------------------------------------|------------------------------------------------------------------|
 | Column                                                 | Description                                                      |
 | Key                                                    | The partition key                                                |
@@ -173,7 +173,7 @@ Tool for getting detailed cell statistics that can help identify issues with dat
 | Size                                                   | Total uncompressed size of the partition                         |
 | SSTable Count                                          | Number of sstables that contain the partition                    |
 
-| SSTable Leaders: Partitions that are in the most sstables                                                                    |
+| SSTable Leaders: Partitions that are in the most sstables |                                                                  |
 |-----------------------------------------------------------|------------------------------------------------------------------|
 | Column                                                    | Description                                                      |
 | Key                                                       | The partition key                                                |
@@ -183,7 +183,7 @@ Tool for getting detailed cell statistics that can help identify issues with dat
 | Tombstones                                                | Number of cell or range tombstones                               |
 | (droppable)                                               | Number of tombstones that can be dropped as per gc_grace_seconds |
 
-| SSTables: Metadata about sstables as it relates to partitions.                                                                                                                                                                      |
+| SSTables: Metadata about sstables as it relates to partitions. |                                                                                                                                                                    |
 |----------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Column                                                         | Description                                                                                                                                                        |
 | SSTable                                                        | Data.db filename of SSTable                                                                                                                                        |
@@ -215,7 +215,7 @@ Finds the largest reclaimable partitions (GCable). Intensive process, effectivel
 | -t <name>  | Snapshot to analyse. Snapshot is created if none is specified.                  |
 
 ### Output ###
-| Largest reclaimable partitions: Partitions with the largest amount of reclaimable data                                                |
+| Largest reclaimable partitions: Partitions with the largest amount of reclaimable data |                                              |
 |----------------------------------------------------------------------------------------|----------------------------------------------|
 | Column                                                                                 | Description                                  |
 | Key                                                                                    | The partition key                            |
