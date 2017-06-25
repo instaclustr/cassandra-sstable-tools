@@ -21,7 +21,7 @@ import java.nio.file.Files;
 import java.util.*;
 
 /**
- * Proxy to Cassandra 3.0 backend.
+ * Proxy to Cassandra 3.7 backend.
  */
 public class CassandraBackend implements CassandraProxy {
     private static final CassandraBackend singleton = new CassandraBackend();
@@ -32,7 +32,7 @@ public class CassandraBackend implements CassandraProxy {
 
     static {
         Util.initDatabaseDescriptor();
-        Schema.instance.loadFromDisk(false);
+        Schema.instance.loadFromDisk();
     }
 
     private CassandraBackend() {}
