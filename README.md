@@ -1,5 +1,5 @@
 # Compile
-$ ant -Dcassandra.version=2.x.y
+$ ant
 
 # Install
 Copy ic-sstable-tools.jar to /usr/share/cassandra
