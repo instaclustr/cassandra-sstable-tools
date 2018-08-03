@@ -6,10 +6,18 @@ import java.util.Comparator;
  * Metadata statistics about sstable.
  */
 public class SSTableMetadata {
-    public final static Comparator<SSTableMetadata> TIMESTAMP_COMPARATOR = new Comparator<SSTableMetadata>() {
+    public final static Comparator<SSTableMetadata> DTCS_COMPARATOR = new Comparator<SSTableMetadata>() {
         @Override
         public int compare(SSTableMetadata o1, SSTableMetadata o2) {
             int cmp = Long.compare(o1.minTimestamp, o2.minTimestamp);
+            return cmp == 0 ? Integer.compare(o1.generation, o2.generation) : cmp;
+        }
+    };
+
+    public final static Comparator<SSTableMetadata> TWCS_COMPARATOR = new Comparator<SSTableMetadata>() {
+        @Override
+        public int compare(SSTableMetadata o1, SSTableMetadata o2) {
+            int cmp = Long.compare(o1.maxTimestamp, o2.maxTimestamp);
             return cmp == 0 ? Integer.compare(o1.generation, o2.generation) : cmp;
         }
     };
@@ -18,6 +26,14 @@ public class SSTableMetadata {
         @Override
         public int compare(SSTableMetadata o1, SSTableMetadata o2) {
             return Integer.compare(o1.generation, o2.generation);
+        }
+    };
+
+    public final static Comparator<SSTableMetadata> LEVEL_COMPARATOR = new Comparator<SSTableMetadata>() {
+        @Override
+        public int compare(SSTableMetadata o1, SSTableMetadata o2) {
+            int cmp = Long.compare(o1.level, o2.level);
+            return cmp == 0 ? Integer.compare(o1.generation, o2.generation) : cmp;
         }
     };
 

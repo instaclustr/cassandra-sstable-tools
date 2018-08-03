@@ -28,6 +28,11 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
     private boolean isDTCS;
 
     /**
+     * Is column family using Time Window Compaction Strategy.
+     */
+    private boolean isTWCS;
+
+    /**
      * Column family store.
      */
     private ColumnFamilyStore cfStore;
@@ -47,9 +52,10 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
      */
     private Collection<org.apache.cassandra.io.sstable.format.SSTableReader> sstables;
 
-    public ColumnFamilyBackend(AbstractType<?> keyValidator, boolean isDTCS, ColumnFamilyStore cfStore, String snapshotName, Collection<String> filter) throws IOException {
+    public ColumnFamilyBackend(AbstractType<?> keyValidator, boolean isDTCS, boolean isTWCS, ColumnFamilyStore cfStore, String snapshotName, Collection<String> filter) throws IOException {
         this.keyValidator = keyValidator;
         this.isDTCS = isDTCS;
+        this.isTWCS = isTWCS;
         this.cfStore = cfStore;
         if (snapshotName != null) {
             this.clearSnapshot = false;
@@ -130,6 +136,11 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
     @Override
     public boolean isDTCS() {
         return isDTCS;
+    }
+
+    @Override
+    public boolean isTWCS() {
+        return isTWCS;
     }
 
     @Override

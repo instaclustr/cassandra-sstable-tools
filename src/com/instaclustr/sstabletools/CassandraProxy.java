@@ -40,4 +40,13 @@ public interface CassandraProxy {
      * @return Proxy to cassandra column family backend.
      */
     public ColumnFamilyProxy getColumnFamily(String ksName, String cfName, String snapshotName, Collection<String> filter);
+
+    /**
+     * Get the compaction class for column family.
+     *
+     * @param ksName Keyspace name.
+     * @param cfName Column family name.
+     * @return The compaction class.
+     */
+    public Class getCompactionClass(String ksName, String cfName);
 }

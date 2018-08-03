@@ -267,7 +267,10 @@ public class ColumnFamilyStatisticsCollector {
             List<SSTableStatistics> sstableStats = partitionReader.getSSTableStatistics();
             Comparator<SSTableStatistics> comparator = SSTableStatistics.LIVENESS_COMPARATOR;
             if (cfProxy.isDTCS()) {
-                comparator = SSTableStatistics.TIMESTAMP_COMPARATOR;
+                comparator = SSTableStatistics.DTCS_COMPARATOR;
+            }
+            if (cfProxy.isTWCS()) {
+                comparator = SSTableStatistics.TWCS_COMPARATOR;
             }
             Collections.sort(sstableStats, comparator);
             for (SSTableStatistics ts : sstableStats) {

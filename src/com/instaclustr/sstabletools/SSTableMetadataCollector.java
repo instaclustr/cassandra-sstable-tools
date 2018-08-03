@@ -1,6 +1,9 @@
 package com.instaclustr.sstabletools;
 
 import com.instaclustr.sstabletools.cassandra.CassandraBackend;
+import org.apache.cassandra.db.compaction.DateTieredCompactionStrategy;
+import org.apache.cassandra.db.compaction.LeveledCompactionStrategy;
+import org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy;
 import org.apache.commons.cli.*;
 
 import java.util.*;
@@ -62,8 +65,21 @@ public class SSTableMetadataCollector {
                     "Droppable",
                     "Repaired At"
             );
-            List<SSTableMetadata> metadataCollection = CassandraBackend.getInstance().getSSTableMetadata(ksName, cfName);
-            Collections.sort(metadataCollection, SSTableMetadata.TIMESTAMP_COMPARATOR);
+            CassandraProxy proxy = CassandraBackend.getInstance();
+            List<SSTableMetadata> metadataCollection = proxy.getSSTableMetadata(ksName, cfName);
+            Class compactionClass = proxy.getCompactionClass(ksName, cfName);
+            Comparator<SSTableMetadata> comparator = SSTableMetadata.GENERATION_COMPARATOR;
+            if (compactionClass.equals(DateTieredCompactionStrategy.class)) {
+                comparator = SSTableMetadata.DTCS_COMPARATOR;
+            }
+            if (compactionClass.equals(TimeWindowCompactionStrategy.class)) {
+                comparator = SSTableMetadata.TWCS_COMPARATOR;
+            }
+            if (compactionClass.equals(LeveledCompactionStrategy.class)) {
+                comparator = SSTableMetadata.LEVEL_COMPARATOR;
+            }
+
+            Collections.sort(metadataCollection, comparator);
             for (SSTableMetadata metadata : metadataCollection) {
                 tb.addRow(
                         metadata.filename,

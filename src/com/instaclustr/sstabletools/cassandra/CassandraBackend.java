@@ -7,6 +7,8 @@ import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.Keyspace;
+import org.apache.cassandra.db.compaction.DateTieredCompactionStrategy;
+import org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy;
 import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.format.SSTableReader;
 import org.apache.cassandra.schema.KeyspaceMetadata;
@@ -118,12 +120,27 @@ public class CassandraBackend implements CassandraProxy {
         ColumnFamilyStore cfStore = getStore(ksName, cfName);
         try {
             CFMetaData metaData = Schema.instance.getCFMetaData(ksName, cfName);
+            Class compactionClass = metaData.params.compaction.klass();
             return new ColumnFamilyBackend(
                     metaData.getKeyValidator(),
-                    metaData.params.compaction.klass().equals(org.apache.cassandra.db.compaction.DateTieredCompactionStrategy.class),
+                    compactionClass.equals(DateTieredCompactionStrategy.class),
+                    compactionClass.equals(TimeWindowCompactionStrategy.class),
                     cfStore,
                     snapshotName,
                     filter);
+        } catch (Throwable t) {
+            System.err.println(String.format("Error retrieving snapshot for %s.%s", ksName, cfName));
+            System.exit(1);
+        }
+
+        return null;
+    }
+
+    @Override
+    public Class getCompactionClass(String ksName, String cfName) {
+        try {
+            CFMetaData metaData = Schema.instance.getCFMetaData(ksName, cfName);
+            return metaData.params.compaction.klass();
         } catch (Throwable t) {
             System.err.println(String.format("Error retrieving snapshot for %s.%s", ksName, cfName));
             System.exit(1);
