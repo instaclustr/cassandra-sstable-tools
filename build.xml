@@ -1,7 +1,7 @@
 <project name="ic-sstable-tools" basedir="." default="jar">
+    <property name="cassandra.version" value="3.11.3"/>
 
     <property name="src.dir"     value="src"/>
-    <property name="src.backend.dir" value="${src.dir}/com/instaclustr/sstabletools/cassandra"/>
     <property name="dist.dir"    value="dist"/>
 
     <property name="build.dir"   value="build"/>
@@ -9,23 +9,10 @@
     <property name="jar.dir"     value="${dist.dir}/${cassandra.version}"/>
     <property name="java.version" value="1.8"/>
 
-    <script language="javascript">
-        if (project.getProperty('cassandra.version') !== null) {
-          var version = project.getProperty('cassandra.version').split('.');
-          var majorVersion = version[0] + '.' + version[1];
-          project.setProperty('cassandra.major.version', majorVersion);
-          if (majorVersion === '2.0') {
-            project.setProperty('ant.build.javac.target', '1.7');
-            project.setProperty('ant.build.javac.source', '1.7');
-          }
-        }
-    </script>
-
     <property name="cassandra.basedir"      value="cassandra"/>
     <property name="cassandra.download.dir" value="${cassandra.basedir}/downloads"/>
     <property name="cassandra.dir"          value="${cassandra.basedir}/${cassandra.version}"/>
     <property name="cassandra.lib.dir"      value="${cassandra.dir}/lib"/>
-    <property name="cassandra.compat.dir"   value="compatibility/${cassandra.major.version}/src"/>
 
     <path id="classpath">
         <fileset dir="${cassandra.lib.dir}" includes="*.jar"/>
@@ -33,7 +20,6 @@
 
     <target name="clean">
         <delete dir="${build.dir}"/>
-        <delete dir="${src.backend.dir}"/>
     </target>
 
     <target name="dist-clean" depends="clean">
@@ -61,9 +47,6 @@
 
     <target name="compile" depends="clean, extract">
         <mkdir dir="${classes.dir}"/>
-        <copy todir="${src.dir}">
-            <fileset dir="${cassandra.compat.dir}"/>
-        </copy>
         <javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="classpath" includeantruntime="false" debug="true"/>
     </target>
 
