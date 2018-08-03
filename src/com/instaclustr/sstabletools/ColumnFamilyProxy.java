@@ -48,6 +48,13 @@ public interface ColumnFamilyProxy extends AutoCloseable {
      */
     boolean isDTCS();
 
+    /**
+     * Is the column family using Time Window compaction strategy.
+     *
+     * @return True if column family is using Time Window compaction strategy.
+     */
+    boolean isTWCS();
+
     @Override
     void close();
 }

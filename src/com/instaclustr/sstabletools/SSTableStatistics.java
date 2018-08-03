@@ -14,7 +14,7 @@ public class SSTableStatistics {
         }
     };
 
-    public final static Comparator<SSTableStatistics> TIMESTAMP_COMPARATOR = new Comparator<SSTableStatistics>() {
+    public final static Comparator<SSTableStatistics> DTCS_COMPARATOR = new Comparator<SSTableStatistics>() {
         @Override
         public int compare(SSTableStatistics o1, SSTableStatistics o2) {
             int cmp = Long.compare(o1.minTimestamp, o2.minTimestamp);
@@ -22,10 +22,10 @@ public class SSTableStatistics {
         }
     };
 
-    public final static Comparator<SSTableStatistics> SIZE_COMPARATOR = new Comparator<SSTableStatistics>() {
+    public final static Comparator<SSTableStatistics> TWCS_COMPARATOR = new Comparator<SSTableStatistics>() {
         @Override
         public int compare(SSTableStatistics o1, SSTableStatistics o2) {
-            int cmp = -Long.compare(o1.size, o2.size);
+            int cmp = Long.compare(o1.maxTimestamp, o2.maxTimestamp);
             return cmp == 0 ? Integer.compare(o1.generation, o2.generation) : cmp;
         }
     };
