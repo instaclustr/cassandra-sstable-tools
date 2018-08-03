@@ -221,11 +221,11 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
         }
 
         public Row applyToStatic(Row row) {
-            return row.purge(purger, nowInSec);
+            return row.purge(purger, nowInSec, true);
         }
 
         public Row applyToRow(Row row) {
-            return row.purge(purger, nowInSec);
+            return row.purge(purger, nowInSec, true);
         }
 
         public RangeTombstoneMarker applyToMarker(RangeTombstoneMarker marker) {
