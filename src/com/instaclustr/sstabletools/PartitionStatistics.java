@@ -39,6 +39,14 @@ public class PartitionStatistics {
         }
     };
 
+    public final static Comparator<PartitionStatistics> MOST_DELETED_ROWS_COMPARATOR = new Comparator<PartitionStatistics>() {
+        @Override
+        public int compare(PartitionStatistics o1, PartitionStatistics o2) {
+            int cmp = -Long.compare(o1.rowDeleteCount, o2.rowDeleteCount);
+            return cmp == 0 ? -Long.compare(o1.size, o2.size) : cmp;
+        }
+    };
+
     /**
      * The partition key.
      */
@@ -53,6 +61,16 @@ public class PartitionStatistics {
      * Size in bytes of current partition.
      */
     public long size = 0;
+
+    /**
+     * Partition row count.
+     */
+    public long rowCount = 0;
+
+    /**
+     * Deleted row count.
+     */
+    public long rowDeleteCount = 0;
 
     /**
      * Partition cell count.
@@ -88,6 +106,8 @@ public class PartitionStatistics {
         PartitionStatistics result = new PartitionStatistics(this.key);
         result.tableCount = this.tableCount + p.tableCount;
         result.size = this.size + p.size;
+        result.rowCount = this.rowCount + p.rowCount;
+        result.rowDeleteCount = this.rowDeleteCount + p.rowDeleteCount;
         result.cellCount = this.cellCount + p.cellCount;
         result.tombstoneCount = this.tombstoneCount + p.tombstoneCount;
         result.droppableTombstoneCount = this.droppableTombstoneCount + p.droppableTombstoneCount;

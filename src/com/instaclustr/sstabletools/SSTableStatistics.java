@@ -66,6 +66,16 @@ public class SSTableStatistics {
     public long maxPartitionSize = 0;
 
     /**
+     * Partition row count.
+     */
+    public long rowCount = 0;
+
+    /**
+     * Deleted row count.
+     */
+    public long rowDeleteCount = 0;
+
+    /**
      * SSTable cell count.
      */
     public long cellCount = 0;

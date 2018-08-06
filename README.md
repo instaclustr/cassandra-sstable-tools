@@ -139,6 +139,7 @@ Summary: Summary statistics about partitions
 | Column                                       | Description                                              |
 |----------------------------------------------|----------------------------------------------------------|
 | Count (Size)                                 | Number of partition keys on this node                    |
+| Rows (Size)                                  | Number of clustering rows                                |
 | Total (Size)                                 | Total uncompressed size of all partitions on this node   |
 | Total (SSTable)                              | Number of sstables on this node                          |
 | Minimum (Size)                               | Minimum uncompressed partition size                      |
@@ -154,6 +155,8 @@ Largest partitions: Partitions with largest uncompressed size
 |---------------------------------------------------------------|------------------------------------------------------------------|
 | Key                                                           | The partition key                                                |
 | Size                                                          | Total uncompressed size of the partition                         |
+| Rows                                                          | Total number of clustering rows in the partition                 |
+| (deleted)                                                     | Number of row deletions in the partition                         |
 | Tombstones                                                    | Number of cell or range tombstones                               |
 | (droppable)                                                   | Number of tombstones that can be dropped as per gc_grace_seconds |
 | Cells                                                         | Number of cells in the partition                                 |
@@ -164,11 +167,24 @@ Widest partitions: Partitions with the most cells
 | Column                                            | Description                                                      |
 |---------------------------------------------------|------------------------------------------------------------------|
 | Key                                               | The partition key                                                |
+| Rows                                              | Total number of clustering rows in the partition                 |
+| (deleted)                                         | Number of row deletions in the partition                         |
 | Cells                                             | Number of cells in the partition                                 |
 | Tombstones                                        | Number of cell or range tombstones                               |
 | (droppable)                                       | Number of tombstones that can be dropped as per gc_grace_seconds |
 | Size                                              | Total uncompressed size of the partition                         |
 | SSTable Count                                     | Number of sstables that contain the partition                    |
+
+Most Deleted Rows: Partitions with the most row deletions
+
+| Column                                            | Description                                                      |
+|---------------------------------------------------|------------------------------------------------------------------|
+| Key                                               | The partition key                                                |
+| Rows                                              | Total number of clustering rows in the partition                 |
+| (deleted)                                         | Number of row deletions in the partition                         |
+| Size                                              | Total uncompressed size of the partition                         |
+| SSTable Count                                     | Number of sstables that contain the partition                    |
+
 
 Tombstone Leaders: Partitions with the most tombstones
 
@@ -177,6 +193,7 @@ Tombstone Leaders: Partitions with the most tombstones
 | Key                                                    | The partition key                                                |
 | Tombstones                                             | Number of cell or range tombstones                               |
 | (droppable)                                            | Number of tombstones that can be dropped as per gc_grace_seconds |
+| Rows                                                   | Total number of clustering rows in the partition                 |
 | Cells                                                  | Number of cells in the partition                                 |
 | Size                                                   | Total uncompressed size of the partition                         |
 | SSTable Count                                          | Number of sstables that contain the partition                    |
@@ -188,6 +205,7 @@ SSTable Leaders: Partitions that are in the most sstables
 | Key                                                       | The partition key                                                |
 | SSTable Count                                             | Number of sstables that contain the partition                    |
 | Size                                                      | Total uncompressed size of the partition                         |
+| Rows                                                      | Total number of clustering rows in the partition                 |
 | Cells                                                     | Number of cells in the partition                                 |
 | Tombstones                                                | Number of cell or range tombstones                               |
 | (droppable)                                               | Number of tombstones that can be dropped as per gc_grace_seconds |
@@ -204,6 +222,8 @@ SSTables: Metadata about sstables as it relates to partitions.
 | (deleted)                                                      | Number of row level partition deletions                                                                                                                            |
 | (avg size)                                                     | Average uncompressed partition size in sstable                                                                                                                     |
 | (max size)                                                     | Maximum uncompressed partition size in sstable                                                                                                                     |
+| Rows                                                           | Total number of clustering rows in sstable                                                                                                                         |
+| (deleted)                                                      | Number of row deletions in sstable                                                                                                                                 |
 | Cells                                                          | Number of cells in the SSTable                                                                                                                                     |
 | Tombstones                                                     | Number of cell or range tombstones in the SSTable                                                                                                                  |
 | (droppable)                                                    | Number of tombstones that are droppable according to gc_grace_seconds                                                                                              |

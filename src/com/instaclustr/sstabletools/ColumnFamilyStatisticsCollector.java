@@ -119,6 +119,7 @@ public class ColumnFamilyStatisticsCollector {
             long minPartitionSize = Long.MAX_VALUE;
             long maxPartitionSize = 0;
             long partitionCount = 0;
+            long rowCount = 0;
             long totalPartitionSize = 0;
             int minTables = Integer.MAX_VALUE;
             int maxTables = 0;
@@ -139,6 +140,11 @@ public class ColumnFamilyStatisticsCollector {
                     .maximumSize(numPartitions)
                     .create();
 
+            MinMaxPriorityQueue<PartitionStatistics> mostDeletedRows = MinMaxPriorityQueue
+                    .orderedBy(PartitionStatistics.MOST_DELETED_ROWS_COMPARATOR)
+                    .maximumSize(numPartitions)
+                    .create();
+
             MinMaxPriorityQueue<PartitionStatistics> tableCountLeaders = MinMaxPriorityQueue
                     .orderedBy(PartitionStatistics.SSTABLE_COUNT_COMPARATOR)
                     .maximumSize(numPartitions)
@@ -156,6 +162,9 @@ public class ColumnFamilyStatisticsCollector {
                 if (pStats.tombstoneCount > 0) {
                     tombstoneLeaders.add(pStats);
                 }
+                if (pStats.rowDeleteCount > 0) {
+                    mostDeletedRows.add(pStats);
+                }
                 tableCountLeaders.add(pStats);
                 minPartitionSize = Math.min(minPartitionSize, partitionSize);
                 maxPartitionSize = Math.max(maxPartitionSize, partitionSize);
@@ -163,6 +172,7 @@ public class ColumnFamilyStatisticsCollector {
                 minTables = Math.min(minTables, pStats.tableCount);
                 maxTables = Math.max(maxTables, pStats.tableCount);
                 totalTables += pStats.tableCount;
+                rowCount += pStats.rowCount;
                 partitionCount++;
             }
 
@@ -172,6 +182,7 @@ public class ColumnFamilyStatisticsCollector {
             TableBuilder tb = new TableBuilder();
             tb.setHeader("", "Size", "SSTable");
             tb.addRow("Count", Long.toString(partitionCount), "");
+            tb.addRow("Rows", Long.toString(rowCount), "");
             tb.addRow("Total", Util.humanReadableByteCount(totalPartitionSize), Integer.toString(sstableReaders.size()));
             tb.addRow("Minimum", Util.humanReadableByteCount(minPartitionSize), Integer.toString(minTables));
             tb.addRow("Maximum", Util.humanReadableByteCount(maxPartitionSize), Integer.toString(maxTables));
@@ -180,13 +191,15 @@ public class ColumnFamilyStatisticsCollector {
 
             System.out.println("Largest partitions:");
             TableBuilder lptb = new TableBuilder();
-            lptb.setHeader("Key", "Size", "Tombstones", "(droppable)", "Cells", "SSTable Count");
+            lptb.setHeader("Key", "Size", "Rows", "(deleted)", "Tombstones", "(droppable)", "Cells", "SSTable Count");
 
             while (!largestPartitions.isEmpty()) {
                 PartitionStatistics p = largestPartitions.remove();
                 lptb.addRow(
                         cfProxy.formatKey(p.key),
                         Util.humanReadableByteCount(p.size),
+                        Long.toString(p.rowCount),
+                        Long.toString(p.rowDeleteCount),
                         Long.toString(p.tombstoneCount),
                         Long.toString(p.droppableTombstoneCount),
                         Long.toString(p.cellCount),
@@ -197,11 +210,13 @@ public class ColumnFamilyStatisticsCollector {
 
             System.out.println("Widest partitions:");
             TableBuilder wptb = new TableBuilder();
-            wptb.setHeader("Key", "Cells", "Tombstones", "(droppable)", "Size", "SSTable Count");
+            wptb.setHeader("Key", "Rows", "(deleted)", "Cells", "Tombstones", "(droppable)", "Size", "SSTable Count");
             while (!widestPartitions.isEmpty()) {
                 PartitionStatistics p = widestPartitions.remove();
                 wptb.addRow(
                         cfProxy.formatKey(p.key),
+                        Long.toString(p.rowCount),
+                        Long.toString(p.rowDeleteCount),
                         Long.toString(p.cellCount),
                         Long.toString(p.tombstoneCount),
                         Long.toString(p.droppableTombstoneCount),
@@ -211,16 +226,34 @@ public class ColumnFamilyStatisticsCollector {
             }
             System.out.println(wptb);
 
+            if (!mostDeletedRows.isEmpty()) {
+                System.out.println("Most Deleted Rows:");
+                TableBuilder tltb = new TableBuilder();
+                tltb.setHeader("Key", "Rows", "(deleted)", "Size", "SSTable Count");
+                while (!tombstoneLeaders.isEmpty()) {
+                    PartitionStatistics p = tombstoneLeaders.remove();
+                    tltb.addRow(
+                            cfProxy.formatKey(p.key),
+                            Long.toString(p.rowCount),
+                            Long.toString(p.rowDeleteCount),
+                            Util.humanReadableByteCount(p.size),
+                            Long.toString(p.tableCount)
+                    );
+                }
+                System.out.println(tltb);
+            }
+
             if (!tombstoneLeaders.isEmpty()) {
                 System.out.println("Tombstone Leaders:");
                 TableBuilder tltb = new TableBuilder();
-                tltb.setHeader("Key", "Tombstones", "(droppable)", "Cells", "Size", "SSTable Count");
+                tltb.setHeader("Key", "Tombstones", "(droppable)", "Rows", "Cells", "Size", "SSTable Count");
                 while (!tombstoneLeaders.isEmpty()) {
                     PartitionStatistics p = tombstoneLeaders.remove();
                     tltb.addRow(
                             cfProxy.formatKey(p.key),
                             Long.toString(p.tombstoneCount),
                             Long.toString(p.droppableTombstoneCount),
+                            Long.toString(p.rowCount),
                             Long.toString(p.cellCount),
                             Util.humanReadableByteCount(p.size),
                             Long.toString(p.tableCount)
@@ -231,13 +264,14 @@ public class ColumnFamilyStatisticsCollector {
 
             System.out.println("SSTable Leaders:");
             TableBuilder sctb = new TableBuilder();
-            sctb.setHeader("Key", "SSTable Count", "Size", "Cells", "Tombstones", "(droppable)");
+            sctb.setHeader("Key", "SSTable Count", "Size", "Rows", "Cells", "Tombstones", "(droppable)");
             while (!tableCountLeaders.isEmpty()) {
                 PartitionStatistics p = tableCountLeaders.remove();
                 sctb.addRow(
                         cfProxy.formatKey(p.key),
                         Long.toString(p.tableCount),
                         Util.humanReadableByteCount(p.size),
+                        Long.toString(p.rowCount),
                         Long.toString(p.cellCount),
                         Long.toString(p.tombstoneCount),
                         Long.toString(p.droppableTombstoneCount)
@@ -256,6 +290,8 @@ public class ColumnFamilyStatisticsCollector {
                     "(deleted)",
                     "(avg size)",
                     "(max size)",
+                    "Rows",
+                    "(deleted)",
                     "Cells",
                     "(expiring)",
                     "Tombstones",
@@ -283,6 +319,8 @@ public class ColumnFamilyStatisticsCollector {
                         Long.toString(ts.partitionDeleteCount),
                         Util.humanReadableByteCount(ts.size / ts.partitionCount),
                         Util.humanReadableByteCount(ts.maxPartitionSize),
+                        Long.toString(ts.rowCount),
+                        Long.toString(ts.rowDeleteCount),
                         Long.toString(ts.cellCount),
                         Long.toString(ts.expiringCellCount),
                         Long.toString(ts.tombstoneCount),
