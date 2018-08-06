@@ -63,6 +63,12 @@ public class DataReader extends AbstractSSTableReader {
             switch (unfiltered.kind()) {
                 case ROW:
                     Row row = (Row) unfiltered;
+                    this.partitionStats.rowCount++;
+                    this.tableStats.rowCount++;
+                    if (!row.deletion().isLive()) {
+                        this.partitionStats.rowDeleteCount++;
+                        this.tableStats.rowDeleteCount++;
+                    }
                     int clusteringCellCount = row.clustering().size();
                     int cellCount = row.columns().size() + clusteringCellCount;
                     this.partitionStats.cellCount += cellCount;
