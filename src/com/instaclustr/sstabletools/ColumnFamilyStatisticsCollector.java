@@ -228,11 +228,11 @@ public class ColumnFamilyStatisticsCollector {
 
             if (!mostDeletedRows.isEmpty()) {
                 System.out.println("Most Deleted Rows:");
-                TableBuilder tltb = new TableBuilder();
-                tltb.setHeader("Key", "Rows", "(deleted)", "Size", "SSTable Count");
-                while (!tombstoneLeaders.isEmpty()) {
-                    PartitionStatistics p = tombstoneLeaders.remove();
-                    tltb.addRow(
+                TableBuilder mdtb = new TableBuilder();
+                mdtb.setHeader("Key", "Rows", "(deleted)", "Size", "SSTable Count");
+                while (!mostDeletedRows.isEmpty()) {
+                    PartitionStatistics p = mostDeletedRows.remove();
+                    mdtb.addRow(
                             cfProxy.formatKey(p.key),
                             Long.toString(p.rowCount),
                             Long.toString(p.rowDeleteCount),
@@ -240,7 +240,7 @@ public class ColumnFamilyStatisticsCollector {
                             Long.toString(p.tableCount)
                     );
                 }
-                System.out.println(tltb);
+                System.out.println(mdtb);
             }
 
             if (!tombstoneLeaders.isEmpty()) {
