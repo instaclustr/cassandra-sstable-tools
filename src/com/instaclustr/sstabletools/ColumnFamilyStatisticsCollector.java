@@ -156,8 +156,8 @@ public class ColumnFamilyStatisticsCollector {
                 sstableHistogram.update(pStats.tableCount);
                 partitionCount++;
             }
-            sizeHistogram.snapshot();
-            sstableHistogram.snapshot();
+            Snapshot sizeSnapshot = sizeHistogram.snapshot();
+            Snapshot sstableSnapshot = sstableHistogram.snapshot();
 
             cfProxy.close();
 
@@ -165,17 +165,17 @@ public class ColumnFamilyStatisticsCollector {
             TableBuilder tb = new TableBuilder();
             tb.setHeader("", "Size", "SSTable");
             tb.addRow("Count", Long.toString(partitionCount), "");
-            tb.addRow("Total", Util.humanReadableByteCount(sizeHistogram.getTotal()), Integer.toString(sstableReaders.size()));
-            tb.addRow("Minimum", Util.humanReadableByteCount(sizeHistogram.getMin()), Long.toString(sstableHistogram.getMin()));
-            tb.addRow("Average", Util.humanReadableByteCount(Math.round(sizeHistogram.getMean())), String.format("%.1f", sstableHistogram.getMean()));
-            tb.addRow("std dev.", Util.humanReadableByteCount(Math.round(sizeHistogram.getStdDev())), String.format("%.1f", sstableHistogram.getStdDev()));
-            tb.addRow("50%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.5))), String.format("%.1f", sstableHistogram.getValue(0.5)));
-            tb.addRow("75%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.75))), String.format("%.1f", sstableHistogram.getValue(0.75)));
-            tb.addRow("90%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.9))), String.format("%.1f", sstableHistogram.getValue(0.9)));
-            tb.addRow("95%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.95))), String.format("%.1f", sstableHistogram.getValue(0.95)));
-            tb.addRow("99%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.99))), String.format("%.1f", sstableHistogram.getValue(0.99)));
-            tb.addRow("99.9%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.999))), String.format("%.1f", sstableHistogram.getValue(0.999)));
-            tb.addRow("Maximum", Util.humanReadableByteCount(sizeHistogram.getMax()), Long.toString(sstableHistogram.getMax()));
+            tb.addRow("Total", Util.humanReadableByteCount(sizeSnapshot.getTotal()), Integer.toString(sstableReaders.size()));
+            tb.addRow("Minimum", Util.humanReadableByteCount(sizeSnapshot.getMin()), Long.toString(sstableSnapshot.getMin()));
+            tb.addRow("Average", Util.humanReadableByteCount(Math.round(sizeSnapshot.getMean())), String.format("%.1f", sstableSnapshot.getMean()));
+            tb.addRow("std dev.", Util.humanReadableByteCount(Math.round(sizeSnapshot.getStdDev())), String.format("%.1f", sstableSnapshot.getStdDev()));
+            tb.addRow("50%", Util.humanReadableByteCount(Math.round(sizeSnapshot.getPercentile(0.5))), String.format("%.1f", sstableSnapshot.getPercentile(0.5)));
+            tb.addRow("75%", Util.humanReadableByteCount(Math.round(sizeSnapshot.getPercentile(0.75))), String.format("%.1f", sstableSnapshot.getPercentile(0.75)));
+            tb.addRow("90%", Util.humanReadableByteCount(Math.round(sizeSnapshot.getPercentile(0.9))), String.format("%.1f", sstableSnapshot.getPercentile(0.9)));
+            tb.addRow("95%", Util.humanReadableByteCount(Math.round(sizeSnapshot.getPercentile(0.95))), String.format("%.1f", sstableSnapshot.getPercentile(0.95)));
+            tb.addRow("99%", Util.humanReadableByteCount(Math.round(sizeSnapshot.getPercentile(0.99))), String.format("%.1f", sstableSnapshot.getPercentile(0.99)));
+            tb.addRow("99.9%", Util.humanReadableByteCount(Math.round(sizeSnapshot.getPercentile(0.999))), String.format("%.1f", sstableSnapshot.getPercentile(0.999)));
+            tb.addRow("Maximum", Util.humanReadableByteCount(sizeSnapshot.getMax()), Long.toString(sstableSnapshot.getMax()));
             System.out.println(tb);
 
             System.out.println("Largest partitions:");
