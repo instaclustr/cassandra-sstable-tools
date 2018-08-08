@@ -140,6 +140,7 @@ Summary: Summary statistics about partitions
 |----------------------------------------------|----------------------------------------------------------|
 | Count (Size)                                 | Number of partition keys on this node                    |
 | Rows (Size)                                  | Number of clustering rows                                |
+| (deleted)                                    | Number of clustering row deletions                       |
 | Total (Size)                                 | Total uncompressed size of all partitions on this node   |
 | Total (SSTable)                              | Number of sstables on this node                          |
 | Minimum (Size)                               | Minimum uncompressed partition size                      |
