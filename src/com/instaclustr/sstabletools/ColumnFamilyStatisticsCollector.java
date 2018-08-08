@@ -116,15 +116,11 @@ public class ColumnFamilyStatisticsCollector {
                 System.exit(0);
             }
 
-            long minPartitionSize = Long.MAX_VALUE;
-            long maxPartitionSize = 0;
+            Histogram sizeHistogram = new Histogram();
+            Histogram sstableHistogram = new Histogram();
             long partitionCount = 0;
             long rowCount = 0;
             long rowDeleteCount = 0;
-            long totalPartitionSize = 0;
-            int minTables = Integer.MAX_VALUE;
-            int maxTables = 0;
-            long totalTables = 0;
 
             MinMaxPriorityQueue<PartitionStatistics> largestPartitions = MinMaxPriorityQueue
                     .orderedBy(PartitionStatistics.SIZE_COMPARATOR)
@@ -157,7 +153,6 @@ public class ColumnFamilyStatisticsCollector {
             progressBar.updateProgress(0.0);
             while ((pStats = partitionReader.read()) != null) {
                 progressBar.updateProgress(partitionReader.getProgress());
-                long partitionSize = pStats.size;
                 widestPartitions.add(pStats);
                 largestPartitions.add(pStats);
                 if (pStats.tombstoneCount > 0) {
@@ -167,16 +162,14 @@ public class ColumnFamilyStatisticsCollector {
                     mostDeletedRows.add(pStats);
                 }
                 tableCountLeaders.add(pStats);
-                minPartitionSize = Math.min(minPartitionSize, partitionSize);
-                maxPartitionSize = Math.max(maxPartitionSize, partitionSize);
-                totalPartitionSize += partitionSize;
-                minTables = Math.min(minTables, pStats.tableCount);
-                maxTables = Math.max(maxTables, pStats.tableCount);
-                totalTables += pStats.tableCount;
+                sizeHistogram.update(pStats.size);
+                sstableHistogram.update(pStats.tableCount);
                 rowCount += pStats.rowCount;
                 rowDeleteCount += pStats.rowDeleteCount;
                 partitionCount++;
             }
+            sizeHistogram.snapshot();
+            sstableHistogram.snapshot();
 
             cfProxy.close();
 
@@ -186,10 +179,17 @@ public class ColumnFamilyStatisticsCollector {
             tb.addRow("Count", Long.toString(partitionCount), "");
             tb.addRow("Rows", Long.toString(rowCount), "");
             tb.addRow("(deleted)", Long.toString(rowDeleteCount), "");
-            tb.addRow("Total", Util.humanReadableByteCount(totalPartitionSize), Integer.toString(sstableReaders.size()));
-            tb.addRow("Minimum", Util.humanReadableByteCount(minPartitionSize), Integer.toString(minTables));
-            tb.addRow("Maximum", Util.humanReadableByteCount(maxPartitionSize), Integer.toString(maxTables));
-            tb.addRow("Average", Util.humanReadableByteCount(totalPartitionSize / partitionCount), String.format("%.1f", totalTables / (double) partitionCount));
+            tb.addRow("Total", Util.humanReadableByteCount(sizeHistogram.getTotal()), Integer.toString(sstableReaders.size()));
+            tb.addRow("Minimum", Util.humanReadableByteCount(sizeHistogram.getMin()), Long.toString(sstableHistogram.getMin()));
+            tb.addRow("Average", Util.humanReadableByteCount(Math.round(sizeHistogram.getMean())), String.format("%.1f", sstableHistogram.getMean()));
+            tb.addRow("std dev.", Util.humanReadableByteCount(Math.round(sizeHistogram.getStdDev())), String.format("%.1f", sstableHistogram.getStdDev()));
+            tb.addRow("50%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.5))), String.format("%.1f", sstableHistogram.getValue(0.5)));
+            tb.addRow("75%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.75))), String.format("%.1f", sstableHistogram.getValue(0.75)));
+            tb.addRow("90%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.9))), String.format("%.1f", sstableHistogram.getValue(0.9)));
+            tb.addRow("95%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.95))), String.format("%.1f", sstableHistogram.getValue(0.95)));
+            tb.addRow("99%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.99))), String.format("%.1f", sstableHistogram.getValue(0.99)));
+            tb.addRow("99.9%", Util.humanReadableByteCount(Math.round(sizeHistogram.getValue(0.999))), String.format("%.1f", sstableHistogram.getValue(0.999)));
+            tb.addRow("Maximum", Util.humanReadableByteCount(sizeHistogram.getMax()), Long.toString(sstableHistogram.getMax()));
             System.out.println(tb);
 
             System.out.println("Largest partitions:");
