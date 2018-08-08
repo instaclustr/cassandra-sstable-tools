@@ -86,11 +86,6 @@ public class SSTableStatistics {
     public long liveCellCount = 0;
 
     /**
-     * SSTable delete cell count.
-     */
-    public long deleteCellCount = 0;
-
-    /**
      * SSTable expiring cell count.
      */
     public long expiringCellCount = 0;
