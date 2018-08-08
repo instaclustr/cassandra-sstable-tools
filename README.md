@@ -85,10 +85,24 @@ Summary: Summary statistics about partitions
 | Total (SSTable)                                                        | Number of sstables on this node                          |
 | Minimum (Size)                                                         | Minimum uncompressed partition size                      |
 | Minimum (SSTable)                                                      | Minimum number of sstables a partition belongs to        |
-| Maximum (Size)                                                         | Maximum uncompressed partition size                      |
-| Maximum (SSTable)                                                      | Maximum number of sstables a partition belongs to        |
 | Average (Size)                                                         | Average (mean) uncompressed partition size               |
 | Average (SSTable)                                                      | Average (mean) number of sstables a partition belongs to |
+| std dev. (Size)                                                        | Standard deviation of partition sizes                    |
+| std dev. (SSTable)                                                     | Standard deviation of number of sstables for a partition |
+| 50% (Size)                                                             | Estimated 50th percentile of partition sizes             |
+| 50% (SSTable)                                                          | Estimated 50th percentile of sstables for a partition    |
+| 75% (Size)                                                             | Estimated 75th percentile of partition sizes             |
+| 75% (SSTable)                                                          | Estimated 75th percentile of sstables for a partition    |
+| 90% (Size)                                                             | Estimated 90th percentile of partition sizes             |
+| 90% (SSTable)                                                          | Estimated 90th percentile of sstables for a partition    |
+| 95% (Size)                                                             | Estimated 95th percentile of partition sizes             |
+| 95% (SSTable)                                                          | Estimated 95th percentile of sstables for a partition    |
+| 99% (Size)                                                             | Estimated 99th percentile of partition sizes             |
+| 99% (SSTable)                                                          | Estimated 99th percentile of sstables for a partition    |
+| 99.9% (Size)                                                           | Estimated 99.9th percentile of partition sizes           |
+| 99.9% (SSTable)                                                        | Estimated 99.9th percentile of sstables for a partition  |
+| Maximum (Size)                                                         | Maximum uncompressed partition size                      |
+| Maximum (SSTable)                                                      | Maximum number of sstables a partition belongs to        |
 
 Largest partitions: The top N largest partitions
 
@@ -143,10 +157,24 @@ Summary: Summary statistics about partitions
 | Total (SSTable)                              | Number of sstables on this node                          |
 | Minimum (Size)                               | Minimum uncompressed partition size                      |
 | Minimum (SSTable)                            | Minimum number of sstables a partition belongs to        |
-| Maximum (Size)                               | Maximum uncompressed partition size                      |
-| Maximum (SSTable)                            | Maximum number of sstables a partition belongs to        |
 | Average (Size)                               | Average (mean) uncompressed partition size               |
 | Average (SSTable)                            | Average (mean) number of sstables a partition belongs to |
+| std dev. (Size)                              | Standard deviation of partition sizes                    |
+| std dev. (SSTable)                           | Standard deviation of number of sstables for a partition |
+| 50% (Size)                                   | Estimated 50th percentile of partition sizes             |
+| 50% (SSTable)                                | Estimated 50th percentile of sstables for a partition    |
+| 75% (Size)                                   | Estimated 75th percentile of partition sizes             |
+| 75% (SSTable)                                | Estimated 75th percentile of sstables for a partition    |
+| 90% (Size)                                   | Estimated 90th percentile of partition sizes             |
+| 90% (SSTable)                                | Estimated 90th percentile of sstables for a partition    |
+| 95% (Size)                                   | Estimated 95th percentile of partition sizes             |
+| 95% (SSTable)                                | Estimated 95th percentile of sstables for a partition    |
+| 99% (Size)                                   | Estimated 99th percentile of partition sizes             |
+| 99% (SSTable)                                | Estimated 99th percentile of sstables for a partition    |
+| 99.9% (Size)                                 | Estimated 99.9th percentile of partition sizes           |
+| 99.9% (SSTable)                              | Estimated 99.9th percentile of sstables for a partition  |
+| Maximum (Size)                               | Maximum uncompressed partition size                      |
+| Maximum (SSTable)                            | Maximum number of sstables a partition belongs to        |
 
 Largest partitions: Partitions with largest uncompressed size 
 
