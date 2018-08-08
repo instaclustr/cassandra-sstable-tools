@@ -120,6 +120,7 @@ public class ColumnFamilyStatisticsCollector {
             long maxPartitionSize = 0;
             long partitionCount = 0;
             long rowCount = 0;
+            long rowDeleteCount = 0;
             long totalPartitionSize = 0;
             int minTables = Integer.MAX_VALUE;
             int maxTables = 0;
@@ -173,6 +174,7 @@ public class ColumnFamilyStatisticsCollector {
                 maxTables = Math.max(maxTables, pStats.tableCount);
                 totalTables += pStats.tableCount;
                 rowCount += pStats.rowCount;
+                rowDeleteCount += pStats.rowDeleteCount;
                 partitionCount++;
             }
 
@@ -183,6 +185,7 @@ public class ColumnFamilyStatisticsCollector {
             tb.setHeader("", "Size", "SSTable");
             tb.addRow("Count", Long.toString(partitionCount), "");
             tb.addRow("Rows", Long.toString(rowCount), "");
+            tb.addRow("(deleted)", Long.toString(rowDeleteCount), "");
             tb.addRow("Total", Util.humanReadableByteCount(totalPartitionSize), Integer.toString(sstableReaders.size()));
             tb.addRow("Minimum", Util.humanReadableByteCount(minPartitionSize), Integer.toString(minTables));
             tb.addRow("Maximum", Util.humanReadableByteCount(maxPartitionSize), Integer.toString(maxTables));
