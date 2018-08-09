@@ -3,14 +3,14 @@
 $ git clone git@github.com:instaclustr/cassandra-sstable-tools.git
 $ cd cassandra-sstable-tools
 # Select the correct branch for major version (default is cassandra-3.11)
-$ git checkout cassandra-3.11
+$ git checkout cassandra-3.0
 $ ant
 ```
 
 You can compile against an older minor version with `-Dcassandra.version=<version>`. For example: 
 
 ```
-$ ant -Dcassandra.version=3.11.2
+$ ant -Dcassandra.version=3.0.16
 ```
 
 However only the version specified in build.xml is officially supported,
