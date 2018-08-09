@@ -118,6 +118,7 @@ public class ColumnFamilyStatisticsCollector {
 
             Histogram sizeHistogram = new Histogram();
             Histogram sstableHistogram = new Histogram();
+            Histogram rowHistogram = new Histogram();
             long partitionCount = 0;
             long rowCount = 0;
             long rowDeleteCount = 0;
@@ -164,12 +165,14 @@ public class ColumnFamilyStatisticsCollector {
                 tableCountLeaders.add(pStats);
                 sizeHistogram.update(pStats.size);
                 sstableHistogram.update(pStats.tableCount);
+                rowHistogram.update(pStats.rowCount);
                 rowCount += pStats.rowCount;
                 rowDeleteCount += pStats.rowDeleteCount;
                 partitionCount++;
             }
             Snapshot sizeSnapshot = sizeHistogram.snapshot();
             Snapshot sstableSnapshot = sstableHistogram.snapshot();
+            Snapshot rowSnapshot = rowHistogram.snapshot();
 
             cfProxy.close();
 
@@ -191,6 +194,21 @@ public class ColumnFamilyStatisticsCollector {
             tb.addRow("99.9%", Util.humanReadableByteCount(Math.round(sizeSnapshot.getPercentile(0.999))), String.format("%.1f", sstableSnapshot.getPercentile(0.999)));
             tb.addRow("Maximum", Util.humanReadableByteCount(sizeSnapshot.getMax()), Long.toString(sstableSnapshot.getMax()));
             System.out.println(tb);
+
+            System.out.println("Row Histogram:");
+            TableBuilder rhtb = new TableBuilder();
+            rhtb.setHeader("Percentile", "Count");
+            rhtb.addRow("Minimum", Long.toString(rowSnapshot.getMin()));
+            rhtb.addRow("Average", Long.toString(Math.round(rowSnapshot.getMean())));
+            rhtb.addRow("std dev.", Long.toString(Math.round(rowSnapshot.getStdDev())));
+            rhtb.addRow("50%", Long.toString(Math.round(rowSnapshot.getPercentile(0.5))));
+            rhtb.addRow("75%", Long.toString(Math.round(rowSnapshot.getPercentile(0.75))));
+            rhtb.addRow("90%", Long.toString(Math.round(rowSnapshot.getPercentile(0.9))));
+            rhtb.addRow("95%", Long.toString(Math.round(rowSnapshot.getPercentile(0.95))));
+            rhtb.addRow("99%", Long.toString(Math.round(rowSnapshot.getPercentile(0.99))));
+            rhtb.addRow("99.9%", Long.toString(Math.round(rowSnapshot.getPercentile(0.999))));
+            rhtb.addRow("Maximum", Long.toString(rowSnapshot.getMax()));
+            System.out.println(rhtb);
 
             System.out.println("Largest partitions:");
             TableBuilder lptb = new TableBuilder();
