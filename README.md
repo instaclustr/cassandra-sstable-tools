@@ -1,10 +1,25 @@
 # Compile
+```
+$ git clone git@github.com:instaclustr/cassandra-sstable-tools.git
+$ cd cassandra-sstable-tools
+# Select the correct branch for major version (default is cassandra-3.11)
+$ git checkout cassandra-3.11
 $ ant
+```
+
+You can compile against an older minor version with `-Dcassandra.version=<version>`. For example: 
+
+```
+$ ant -Dcassandra.version=3.11.2
+```
+
+However only the version specified in build.xml is officially supported,
+as compatibility between minor versions can break.
 
 # Install
-Copy ic-sstable-tools.jar to /usr/share/cassandra
+Copy ic-sstable-tools.jar to Cassandra JAR folder, eg. `/usr/share/cassandra`
 
-Copy the bin/ic-* into your $PATH
+Copy the bin/ic-* files into your $PATH
 
 # Documentation
 
