@@ -47,8 +47,8 @@ the largest column families and how much data has been repaired by incremental r
 | SSTables      | Number of sstables on this node for the column family       |
 | Disk Size     | Compressed size on disk for this node                       |
 | Data Size     | Uncompressed size of the data for this node                 |
-| Last Repaired | Time of the last incremental repair                         |
-| Repair %      | Percentage of data marked as repaired by incremental repair |
+| Last Repaired | Maximum repair timestamp on sstables                        |
+| Repair %      | Percentage of data marked as repaired                       |
 
 ## ic-sstables ##
 Print out sstable metadata for a column family. Useful in helping to tune compaction settings.
