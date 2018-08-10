@@ -54,13 +54,13 @@ public class SummaryCollector {
                     long diskSize = 0;
                     long dataSize = 0;
                     long repairedAt = Long.MIN_VALUE;
-                    boolean isRepaired = false;
+                    long repaired = 0;
                     long repairedLength = 0;
                     for (SSTableMetadata metadata : metadataCollection) {
                         diskSize += metadata.diskLength;
                         dataSize += metadata.uncompressedLength;
                         if (metadata.isRepaired) {
-                            isRepaired = true;
+                            repaired++;
                             repairedAt = Math.max(repairedAt, metadata.repairedAt);
                             repairedLength += metadata.uncompressedLength;
                         }
@@ -71,8 +71,8 @@ public class SummaryCollector {
                             Integer.toString(metadataCollection.size()),
                             Util.humanReadableByteCount(diskSize),
                             Util.humanReadableByteCount(dataSize),
-                            isRepaired ? Util.UTC_DATE_FORMAT.format(new Date(repairedAt)) : "",
-                            isRepaired ? String.format("%d%%", Math.round((repairedLength / (double) dataSize) * 100)) : ""
+                            repaired > 0 ? Util.UTC_DATE_FORMAT.format(new Date(repairedAt)) : "",
+                            repaired > 0 ? String.format("%d/%d %d%%", repaired, metadataCollection.size(), (int) Math.floor((repairedLength / (double) dataSize) * 100)) : ""
                     );
                 }
             }
