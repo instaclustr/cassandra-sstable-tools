@@ -193,6 +193,13 @@ Summary: Summary statistics about partitions
 | Maximum (Size)                               | Maximum uncompressed partition size                      |
 | Maximum (SSTable)                            | Maximum number of sstables a partition belongs to        |
 
+Row Histogram: Histogram of number of rows per partition
+
+| Column                                       | Description                                                          |
+|----------------------------------------------|----------------------------------------------------------------------|
+| Percentile                                   | Minimum, average, standard deviation (std dev.), percentile, maximum |                                                                |
+| Count                                        | Estimated number of rows per partition for the given percentile      | 
+
 Largest partitions: Partitions with largest uncompressed size 
 
 | Column                                                        | Description                                                      |
