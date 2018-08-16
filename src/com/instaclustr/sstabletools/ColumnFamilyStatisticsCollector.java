@@ -298,7 +298,7 @@ public class ColumnFamilyStatisticsCollector {
                         Long.toString(p.droppableTombstoneCount)
                 );
             }
-            System.out.print(sctb);
+            System.out.println(sctb);
 
             System.out.println("SSTables:");
             TableBuilder cltb = new TableBuilder();
