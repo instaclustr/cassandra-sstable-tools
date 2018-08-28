@@ -98,6 +98,8 @@ public class CassandraBackend implements CassandraProxy {
             }
             tableMetadata.minTimestamp = table.getMinTimestamp();
             tableMetadata.maxTimestamp = table.getMaxTimestamp();
+            tableMetadata.minLocalDeletionTime = table.getSSTableMetadata().minLocalDeletionTime;
+            tableMetadata.maxLocalDeletionTime = table.getSSTableMetadata().maxLocalDeletionTime;
             tableMetadata.diskLength = table.onDiskLength();
             tableMetadata.uncompressedLength = table.uncompressedLength();
             tableMetadata.keys = table.estimatedKeys();

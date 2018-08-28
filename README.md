@@ -66,6 +66,8 @@ Print out sstable metadata for a column family. Useful in helping to tune compac
 | Min Timestamp      | Minimum cell timestamp contained in the sstable           |
 | Max Timestamp      | Maximum cell timestamp contained in the sstable           |
 | Duration           | The time span between minimum and maximum cell timestamps |
+| Min Deletion Time  | The minimum deletion time                                 |
+| Max Deletion Time  | The maximum deletion time                                 |
 | Level              | Leveled Tiered Compaction sstable level                   |
 | Keys               | Number of partition keys                                  |
 | Avg Partition Size | Average partition size                                    |
