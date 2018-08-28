@@ -35,6 +35,8 @@ public class SSTableMetadata {
 
     public long maxTimestamp;
 
+    public int maxLocalDeletionTime;
+
     public long fileTimestamp;
 
     public long diskLength;
