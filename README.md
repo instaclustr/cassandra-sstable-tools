@@ -307,3 +307,6 @@ Largest reclaimable partitions: Partitions with the largest amount of reclaimabl
 | Reclaim                                                                                | Reclaimable uncompressed size                |
 | Generations                                                                            | SSTable generations the partition belongs to |
 
+
+Please see https://www.instaclustr.com/support/documentation/announcements/instaclustr-open-source-project-status/ for Instaclustr support status of this project
+
