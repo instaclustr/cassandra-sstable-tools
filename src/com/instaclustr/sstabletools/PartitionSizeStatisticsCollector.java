@@ -2,8 +2,12 @@ package com.instaclustr.sstabletools;
 
 import com.google.common.collect.MinMaxPriorityQueue;
 import com.instaclustr.sstabletools.cassandra.CassandraBackend;
+import com.instaclustr.sstabletools.cassandra.CassandraSchema;
 import org.apache.commons.cli.*;
+import org.yaml.snakeyaml.Yaml;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.*;
 
 /**
@@ -15,6 +19,7 @@ public class PartitionSizeStatisticsCollector {
     private static final String SNAPSHOT_OPTION = "t";
     private static final String FILTER_OPTION = "f";
     private static final String BATCH_OPTION = "b";
+    private static final String SCHEMA_OPTION = "s";
 
     private static final Options options = new Options();
     private static CommandLine cmd;
@@ -37,6 +42,9 @@ public class PartitionSizeStatisticsCollector {
 
         Option optBatch = new Option(BATCH_OPTION, "batch", false, "Batch mode");
         options.addOption(optBatch);
+
+        Option optSchema = new Option(SCHEMA_OPTION, "schema", true, "Load the schema from a YAML definition instead of from disk");
+        options.addOption(optSchema);
     }
 
     private static void printHelp() {
@@ -89,11 +97,19 @@ public class PartitionSizeStatisticsCollector {
                 interactive = false;
             }
 
+            CassandraSchema schema = null;
+            if (cmd.hasOption(SCHEMA_OPTION)) {
+                File file = new File(cmd.getOptionValue(SCHEMA_OPTION));
+                FileInputStream fileInputStream = new FileInputStream(file);
+
+                schema = new Yaml().loadAs(fileInputStream, CassandraSchema.class);
+            }
+
             args = cmd.getArgs();
             String ksName = args[0];
             String cfName = args[1];
 
-            cfProxy = CassandraBackend.getInstance().getColumnFamily(ksName, cfName, snapshotName, filter);
+            cfProxy = CassandraBackend.getInstance(schema).getColumnFamily(ksName, cfName, snapshotName, filter);
             Collection<SSTableReader> sstableReaders = cfProxy.getIndexReaders();
             long totalLength = 0;
             for (SSTableReader reader : sstableReaders) {

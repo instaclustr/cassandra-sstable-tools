@@ -12,8 +12,12 @@ import org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy;
 import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.format.SSTableReader;
 import org.apache.cassandra.schema.KeyspaceMetadata;
+import org.apache.cassandra.schema.KeyspaceParams;
+import org.apache.cassandra.schema.Tables;
 import org.apache.cassandra.tools.Util;
 import org.apache.cassandra.utils.EstimatedHistogram;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.instaclustr.sstabletools.Util.NOW_SECONDS;
 
@@ -26,18 +30,44 @@ import java.util.*;
  * Proxy to Cassandra 3.0 backend.
  */
 public class CassandraBackend implements CassandraProxy {
-    private static final CassandraBackend singleton = new CassandraBackend();
+    private static final Logger logger = LoggerFactory.getLogger(CassandraBackend.class);
 
-    public static CassandraProxy getInstance() {
+    private static CassandraBackend singleton = null;
+
+    public static CassandraProxy getInstance(CassandraSchema schema) {
+        if (singleton == null) {
+            singleton = new CassandraBackend(schema);
+        }
         return singleton;
     }
 
     static {
         Util.initDatabaseDescriptor();
-        Schema.instance.loadFromDisk(false);
     }
 
     private CassandraBackend() {}
+
+    private CassandraBackend(CassandraSchema schema) {
+        if (schema == null) {
+            Schema.instance.loadFromDisk(false);
+        } else {
+            for (CassandraSchema.Keyspace keyspace : schema.keyspaces) {
+                Tables.Builder builder = Tables.builder();
+                for (CassandraSchema.ColumnFamily columnFamily : keyspace.columnFamilies) {
+                    CFMetaData cfMetaData = CFMetaData.compile(columnFamily.cql, keyspace.name);
+                    builder.add(cfMetaData);
+
+                    logger.warn("Loading column family {} with id {}", cfMetaData.cfName, cfMetaData.cfId.toString().replace("-", ""));
+                }
+                Tables tables = builder.build();
+
+                logger.warn("Adding {} column families to keyspace {}", tables.size(), keyspace.name);
+                KeyspaceMetadata ksMetadata = KeyspaceMetadata.create(keyspace.name, KeyspaceParams.simple(1), tables);
+
+                Schema.instance.addKeyspace(ksMetadata);
+            }
+        }
+    }
 
     public List<String> getKeyspaces() {
         List<String> names = new ArrayList<>(Schema.instance.getNonSystemKeyspaces());
