@@ -1,17 +1,23 @@
 package com.instaclustr.sstabletools.cassandra;
 
+import com.google.common.collect.Maps;
 import com.instaclustr.sstabletools.CassandraProxy;
 import com.instaclustr.sstabletools.ColumnFamilyProxy;
 import com.instaclustr.sstabletools.SSTableMetadata;
 import com.instaclustr.sstabletools.Util;
+import com.instaclustr.sstabletools.cassandra.CassandraSchema.ColumnFamily;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.config.KSMetaData;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.SSTableReader;
+import org.apache.cassandra.locator.SimpleStrategy;
 import org.apache.cassandra.utils.EstimatedHistogram;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,17 +28,42 @@ import java.util.*;
  * Proxy to Cassandra 2.1 backend.
  */
 public class CassandraBackend implements CassandraProxy {
-    private static final CassandraBackend singleton = new CassandraBackend();
+    private static final Logger logger = LoggerFactory.getLogger(CassandraBackend.class);
 
-    public static CassandraProxy getInstance() {
+    private static CassandraBackend singleton = null;
+
+    public static CassandraProxy getInstance(CassandraSchema schema) {
+        if (singleton == null) {
+            singleton = new CassandraBackend(schema);
+        }
         return singleton;
     }
 
-    static {
-        DatabaseDescriptor.loadSchemas(false);
-    }
+    private CassandraBackend(CassandraSchema schema) {
+        if (schema == null) {
+            DatabaseDescriptor.loadSchemas(false);
+        } else {
+            Keyspace.open(Keyspace.SYSTEM_KS);
+            for (CassandraSchema.Keyspace keyspace : schema.keyspaces) {
+                List<CFMetaData> cfDefs = new ArrayList<>();
 
-    private CassandraBackend() {
+                for (ColumnFamily columnFamily : keyspace.columnFamilies) {
+                    CFMetaData cfMetaData = CFMetaData.compile(columnFamily.cql, keyspace.name);
+                    cfDefs.add(cfMetaData);
+
+                    logger.warn("Loading column family {} with id {}", cfMetaData.cfName, cfMetaData.cfId.toString().replace("-", ""));
+                }
+
+                HashMap<String, String> options = Maps.newHashMap();
+                options.put("replication_factor", "1");
+
+                logger.warn("Adding {} column families to keyspace {}", cfDefs.size(), keyspace.name);
+
+                KSMetaData ksMetaData = KSMetaData.newKeyspace(keyspace.name, SimpleStrategy.class, options, false, cfDefs);
+
+                Schema.instance.load(ksMetaData);
+            }
+        }
     }
 
     public List<String> getKeyspaces() {

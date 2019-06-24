@@ -1,8 +1,12 @@
 package com.instaclustr.sstabletools;
 
 import com.instaclustr.sstabletools.cassandra.CassandraBackend;
+import com.instaclustr.sstabletools.cassandra.CassandraSchema;
 import org.apache.commons.cli.*;
+import org.yaml.snakeyaml.Yaml;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.*;
 
 /**
@@ -10,6 +14,7 @@ import java.util.*;
  */
 public class SSTableMetadataCollector {
     private static final String HELP_OPTION = "h";
+    private static final String SCHEMA_OPTION = "s";
 
     private static final Options options = new Options();
     private static CommandLine cmd;
@@ -17,6 +22,11 @@ public class SSTableMetadataCollector {
     private static void printHelp() {
         HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp("ic-sstables <keyspace> <columnFamily>", "Print out metadata for sstables the belong to a column family", options, null);
+    }
+
+    static {
+        Option optSchema = new Option(SCHEMA_OPTION, "schema", true, "Load the schema from a YAML definition instead of from disk");
+        options.addOption(optSchema);
     }
 
     public static void main(String[] args) {
@@ -38,6 +48,14 @@ public class SSTableMetadataCollector {
             if (cmd.getArgs().length != 2) {
                 printHelp();
                 System.exit(1);
+            }
+
+            CassandraSchema schema = null;
+            if (cmd.hasOption(SCHEMA_OPTION)) {
+                File file = new File(cmd.getOptionValue(SCHEMA_OPTION));
+                FileInputStream fileInputStream = new FileInputStream(file);
+
+                schema = new Yaml().loadAs(fileInputStream, CassandraSchema.class);
             }
 
             args = cmd.getArgs();
@@ -63,7 +81,7 @@ public class SSTableMetadataCollector {
                     "Droppable",
                     "Repaired At"
             );
-            List<SSTableMetadata> metadataCollection = CassandraBackend.getInstance().getSSTableMetadata(ksName, cfName);
+            List<SSTableMetadata> metadataCollection = CassandraBackend.getInstance(schema).getSSTableMetadata(ksName, cfName);
             Collections.sort(metadataCollection, SSTableMetadata.TIMESTAMP_COMPARATOR);
             for (SSTableMetadata metadata : metadataCollection) {
                 tb.addRow(
