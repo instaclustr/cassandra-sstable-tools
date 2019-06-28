@@ -1,5 +1,5 @@
 <project name="ic-sstable-tools" basedir="." default="jar">
-    <property name="cassandra.version" value="2.1.20"/>
+    <property name="cassandra.version" value="2.1.21"/>
 
     <property name="src.dir"     value="src"/>
     <property name="dist.dir"    value="dist"/>
