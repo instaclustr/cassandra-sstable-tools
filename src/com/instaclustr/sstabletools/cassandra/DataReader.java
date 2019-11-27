@@ -40,6 +40,34 @@ public class DataReader extends AbstractSSTableReader {
         this.position = 0;
     }
 
+    private void processRow(Row row) {
+        this.partitionStats.rowCount++;
+        this.tableStats.rowCount++;
+        if (!row.deletion().isLive()) {
+            this.partitionStats.rowDeleteCount++;
+            this.tableStats.rowDeleteCount++;
+        }
+        for (Cell cell : row.cells()) {
+            this.partitionStats.cellCount++;
+            this.tableStats.cellCount++;
+            if (cell.isLive(gcGrace)) {
+                this.tableStats.liveCellCount++;
+            }
+            if (cell.isTombstone()) {
+                this.partitionStats.tombstoneCount++;
+                this.tableStats.tombstoneCount++;
+                if (!cell.isLive(gcGrace)) {
+                    this.partitionStats.droppableTombstoneCount++;
+                    this.tableStats.droppableTombstoneCount++;
+                }
+            } else if (cell.isExpiring()) {
+                this.tableStats.expiringCellCount++;
+            } else if (cell.isCounterCell()) {
+                this.tableStats.counterCellCount++;
+            }
+        }
+    }
+
     @Override
     public boolean next() {
         if (!scanner.hasNext()) {
@@ -50,10 +78,7 @@ public class DataReader extends AbstractSSTableReader {
         this.partitionStats = new PartitionStatistics(partition.partitionKey());
         this.tableStats.partitionCount++;
         if (!partition.staticRow().isEmpty()) {
-            Row row = partition.staticRow();
-            int cellCount = row.columns().size() + row.clustering().size();
-            this.partitionStats.cellCount += cellCount;
-            this.tableStats.cellCount += cellCount;
+            processRow(partition.staticRow());
         }
         if (!partition.partitionLevelDeletion().isLive()) {
             this.tableStats.partitionDeleteCount++;
@@ -62,35 +87,7 @@ public class DataReader extends AbstractSSTableReader {
             Unfiltered unfiltered = partition.next();
             switch (unfiltered.kind()) {
                 case ROW:
-                    Row row = (Row) unfiltered;
-                    this.partitionStats.rowCount++;
-                    this.tableStats.rowCount++;
-                    if (!row.deletion().isLive()) {
-                        this.partitionStats.rowDeleteCount++;
-                        this.tableStats.rowDeleteCount++;
-                    }
-                    int clusteringCellCount = row.clustering().size();
-                    int cellCount = row.columns().size() + clusteringCellCount;
-                    this.partitionStats.cellCount += cellCount;
-                    this.tableStats.cellCount += cellCount;
-                    this.tableStats.liveCellCount += clusteringCellCount;
-                    for (Cell cell : row.cells()) {
-                        if (cell.isLive(gcGrace)) {
-                            this.tableStats.liveCellCount++;
-                        }
-                        if (cell.isTombstone()) {
-                            this.partitionStats.tombstoneCount++;
-                            this.tableStats.tombstoneCount++;
-                            if (!cell.isLive(gcGrace)) {
-                                this.partitionStats.droppableTombstoneCount++;
-                                this.tableStats.droppableTombstoneCount++;
-                            }
-                        } else if (cell.isExpiring()) {
-                            this.tableStats.expiringCellCount++;
-                        } else if (cell.isCounterCell()) {
-                            this.tableStats.counterCellCount++;
-                        }
-                    }
+                    processRow((Row) unfiltered);
                     break;
                 case RANGE_TOMBSTONE_MARKER:
                     this.partitionStats.tombstoneCount++;
