@@ -32,10 +32,10 @@
             <available file="${cassandra.dir}" type="dir"/>
         </condition>
     </target>
-    
+
     <target name="download" depends="cassandra-check" unless="cassandra.exists">
         <mkdir dir="${cassandra.download.dir}"/>
-        <get src="http://archive.apache.org/dist/cassandra/${cassandra.version}/apache-cassandra-${cassandra.version}-bin.tar.gz" dest="${cassandra.download.dir}" skipexisting="true"/>        
+        <get src="http://archive.apache.org/dist/cassandra/${cassandra.version}/apache-cassandra-${cassandra.version}-bin.tar.gz" dest="${cassandra.download.dir}" skipexisting="true"/>
     </target>
 
     <target name="extract" depends="cassandra-check, download" unless="cassandra.exists">
@@ -55,4 +55,22 @@
         <jar destfile="${jar.dir}/ic-sstable-tools.jar" basedir="${classes.dir}"/>
     </target>
 
+    <!-- Generate IDEA project description files -->
+    <target name="generate-idea-files" depends="extract" description="Generate IDEA files">
+        <mkdir dir=".idea"/>
+        <mkdir dir=".idea/libraries"/>
+        <copy todir=".idea">
+            <fileset dir="ide/idea"/>
+        </copy>
+        <copy tofile="cassandra-sstable-tools.iml" file="ide/idea-iml-file.xml"/>
+        <echo file=".idea/.name">Cassandra SSTable Tools</echo>
+        <echo file=".idea/modules.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+    <component name="ProjectModuleManager">
+    <modules>
+        <module fileurl="file://$PROJECT_DIR$/cassandra-sstable-tools.iml" filepath="$PROJECT_DIR$/cassandra-sstable-tools.iml" />
+    </modules>
+</component>
+    </project>]]></echo>
+    </target>
 </project>
