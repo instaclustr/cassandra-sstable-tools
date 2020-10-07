@@ -43,6 +43,10 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
 
     public PurgeStatisticBackend(ColumnFamilyStore cfs, Collection<SSTableReader> sstables, RateLimiter rateLimiter) {
         bytesRead = 0;
+        if (sstables.size() == 0){
+            System.out.println("No data found!");
+            System.exit(0);
+        }
         readerQueue = new PriorityQueue<>(sstables.size());
         for (SSTableReader sstable : sstables) {
             length += sstable.uncompressedLength();
