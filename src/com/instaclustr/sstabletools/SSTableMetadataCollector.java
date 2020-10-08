@@ -65,6 +65,13 @@ public class SSTableMetadataCollector {
             String ksName = args[0];
             String cfName = args[1];
 
+            CassandraProxy proxy = CassandraBackend.getInstance(schema);
+            List<SSTableMetadata> metadataCollection = proxy.getSSTableMetadata(ksName, cfName);
+            if (metadataCollection.isEmpty()) {
+                System.out.println("No data found!");
+                System.exit(0);
+            }
+
             TableBuilder tb = new TableBuilder();
             tb.setHeader(
                     "SSTable",
@@ -85,8 +92,6 @@ public class SSTableMetadataCollector {
                     "Droppable",
                     "Repaired At"
             );
-            CassandraProxy proxy = CassandraBackend.getInstance(schema);
-            List<SSTableMetadata> metadataCollection = proxy.getSSTableMetadata(ksName, cfName);
             Class compactionClass = proxy.getCompactionClass(ksName, cfName);
             Comparator<SSTableMetadata> comparator = SSTableMetadata.GENERATION_COMPARATOR;
             if (compactionClass.equals(DateTieredCompactionStrategy.class)) {
