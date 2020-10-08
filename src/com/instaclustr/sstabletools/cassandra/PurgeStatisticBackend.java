@@ -44,17 +44,18 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
     public PurgeStatisticBackend(ColumnFamilyStore cfs, Collection<SSTableReader> sstables, RateLimiter rateLimiter) {
         bytesRead = 0;
         if (sstables.size() == 0){
-            System.out.println("No data found!");
-            System.exit(0);
-        }
-        readerQueue = new PriorityQueue<>(sstables.size());
-        for (SSTableReader sstable : sstables) {
-            length += sstable.uncompressedLength();
-            ScannerWrapper scanner = new ScannerWrapper(sstable.descriptor.generation, sstable.getScanner(rateLimiter));
-            if (scanner.next()) {
-                readerQueue.add(scanner);
+            readerQueue = new PriorityQueue<>();
+        }else{
+            readerQueue = new PriorityQueue<>(sstables.size());
+            for (SSTableReader sstable : sstables) {
+                length += sstable.uncompressedLength();
+                ScannerWrapper scanner = new ScannerWrapper(sstable.descriptor.generation, sstable.getScanner(rateLimiter));
+                if (scanner.next()) {
+                    readerQueue.add(scanner);
+                }
             }
         }
+
         this.controller = new CompactionController(cfs, null, cfs.gcBefore(Util.NOW));
     }
     

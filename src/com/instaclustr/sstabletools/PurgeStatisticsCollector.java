@@ -122,6 +122,10 @@ public class PurgeStatisticsCollector {
             String cfName = args[1];
 
             cfProxy = CassandraBackend.getInstance(schema).getColumnFamily(ksName, cfName, snapshotName, filter);
+            if (cfProxy.numberOfSstables() == 0){
+                System.out.println("No data found!");
+                System.exit(0);
+            }
             PurgeStatisticsReader reader = cfProxy.getPurgeStatisticsReader(rateLimiter);
 
             long totalSize = 0;

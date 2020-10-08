@@ -140,4 +140,9 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
             clearSnapshot = false;
         }
     }
+
+    @Override
+    public Integer numberOfSstables() {
+        return this.sstables.size();
+    }
 }

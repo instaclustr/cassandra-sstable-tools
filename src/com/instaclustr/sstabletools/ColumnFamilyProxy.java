@@ -50,4 +50,9 @@ public interface ColumnFamilyProxy extends AutoCloseable {
 
     @Override
     void close();
+
+    /**
+     * @return the number of sstables
+     */
+    Integer numberOfSstables();
 }
