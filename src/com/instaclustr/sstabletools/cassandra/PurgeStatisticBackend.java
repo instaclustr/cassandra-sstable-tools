@@ -46,7 +46,7 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
 
     public PurgeStatisticBackend(ColumnFamilyStore cfs, Collection<SSTableReader> sstables, RateLimiter rateLimiter) {
         bytesRead = 0;
-        readerQueue = new PriorityQueue<>(sstables.size());
+        readerQueue = new PriorityQueue<>(sstables.isEmpty() ? 1 : sstables.size());
         for (SSTableReader sstable : sstables) {
             length += sstable.uncompressedLength();
             ScannerWrapper scanner = new ScannerWrapper(sstable.descriptor.generation, sstable.getScanner(rateLimiter));
