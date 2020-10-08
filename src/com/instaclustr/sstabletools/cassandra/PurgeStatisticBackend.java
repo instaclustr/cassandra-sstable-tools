@@ -48,7 +48,7 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
     public PurgeStatisticBackend(ColumnFamilyStore cfs, Collection<org.apache.cassandra.io.sstable.format.SSTableReader> sstables, RateLimiter rateLimiter, int gcGrace) {
         this.gcBefore = Util.NOW_SECONDS - gcGrace;
         bytesRead = 0;
-        readerQueue = new PriorityQueue<>(sstables.size());
+        readerQueue = new PriorityQueue<>(sstables.isEmpty() ? 1 : sstables.size());
         for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
             length += sstable.uncompressedLength();
             ScannerWrapper scanner = new ScannerWrapper(sstable.descriptor.generation, sstable.getScanner(rateLimiter));
