@@ -62,6 +62,12 @@ public class SSTableMetadataCollector {
             String ksName = args[0];
             String cfName = args[1];
 
+            List<SSTableMetadata> metadataCollection = CassandraBackend.getInstance(schema).getSSTableMetadata(ksName, cfName);
+            if (metadataCollection.isEmpty()) {
+                System.out.println("No data found!");
+                System.exit(0);
+            }
+
             TableBuilder tb = new TableBuilder();
             tb.setHeader(
                     "SSTable",
@@ -81,7 +87,6 @@ public class SSTableMetadataCollector {
                     "Droppable",
                     "Repaired At"
             );
-            List<SSTableMetadata> metadataCollection = CassandraBackend.getInstance(schema).getSSTableMetadata(ksName, cfName);
             Collections.sort(metadataCollection, SSTableMetadata.TIMESTAMP_COMPARATOR);
             for (SSTableMetadata metadata : metadataCollection) {
                 tb.addRow(
