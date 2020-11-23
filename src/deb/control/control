@@ -1,0 +1,6 @@
+Package: [[name]]
+Version: [[version]]
+Section: misc
+Priority: optional
+Architecture: all
+Maintainer: [[maintainer]]

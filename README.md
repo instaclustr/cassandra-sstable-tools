@@ -1,43 +1,56 @@
-# Compile
+# Instaclustr SSTable tools
+
+[![Maven Badge](https://img.shields.io/maven-central/v/com.instaclustr/ic-sstable-tools-4.0-beta3.svg?label=Maven%20Central)](link=https://search.maven.org/search?q=g:%22com.instaclustr%22%20AND%20a:%22ic-sstable-tools-4.0-beta3%22)
+[![Circle CI](https://circleci.com/gh/instaclustr/cassandra-sstable-tools.svg?style=svg)](link=https://circleci.com/gh/instaclustr/cassandra-sstable-tools)
+
+## Compile
 ```
 $ git clone git@github.com:instaclustr/cassandra-sstable-tools.git
 $ cd cassandra-sstable-tools
 # Select the correct branch for major version (default is cassandra-4.0)
 $ git checkout cassandra-4.0
-$ ant
 ```
 
-You can compile against an older minor version with `-Dcassandra.version=<version>`. For example: 
-
 ```
-$ ant -Dcassandra.version=3.11.2
+$ mvn clean install
 ```
 
-However only the version specified in build.xml is officially supported,
-as compatibility between minor versions can break.
+## Install
+Copy `ic-sstable-tools.jar` to Cassandra JAR folder, eg. `/usr/share/cassandra/lib`
 
-# Install
-Copy ic-sstable-tools.jar to Cassandra JAR folder, eg. `/usr/share/cassandra`
+Copy the `bin/ic-sstable-tools` script into your `$PATH`
 
-Copy the bin/ic-* files into your $PATH
+We also offer RPM and DEB packages. In case you install them, you do not need to execute steps above, obviously.
 
-# Documentation
+## Documentation
 
-| Command     | Description                                                                              |
-|-------------|------------------------------------------------------------------------------------------|
-| ic-summary  | Summary information about all column families including how much of the data is repaired |
-| ic-sstables | Print out metadata for sstables the belong to a column family                            |
-| ic-pstats   | Partition size statistics for a column family                                            |
-| ic-cfstats  | Detailed statistics about cells in a column family                                       |
-| ic-purge    | Statistics about reclaimable data for a column family                                    |
+```
+$ ./bin/ic-sstable-tools 
+Missing required sub-command.
+Usage: <main class> [-hV] [COMMAND]
+  -h, --help      Show this help message and exit.
+  -V, --version   Print version information and exit.
+Commands:
+  cfstats   Detailed statistics about cells in a column family
+  pstats    Partition size statistics for a column family
+  purge     Statistics about reclaimable data for a column family
+  sstables  Print out metadata for sstables the belong to a column family
+  summary   Summary information about all column families including how much of the data is repaired
+```
 
-## ic-summary ##
+If you want invoke help command for each subcommand, do it like:
+
+```
+$ ./bin/ic-sstable-tools help cfstats
+```
+
+## summary ##
 Provides summary information about all column families. Useful for finding
 the largest column families and how much data has been repaired by incremental repairs.
 
 ### Usage ###
 
-    ic-summary
+    ic-sstable-tools summary
 
 ### Output ###
 | Column        | Description                                                 |
@@ -50,12 +63,12 @@ the largest column families and how much data has been repaired by incremental r
 | Last Repaired | Maximum repair timestamp on sstables                        |
 | Repair %      | Percentage of data marked as repaired                       |
 
-## ic-sstables ##
+## sstables ##
 Print out sstable metadata for a column family. Useful in helping to tune compaction settings.
 
 ### Usage ###
 
-    ic-sstables <keyspace> <column-family>
+    ic-sstable-tools sstables <keyspace> <column-family>
 
 ### Output ###
 | Column             | Description                                               |
@@ -78,12 +91,12 @@ Print out sstable metadata for a column family. Useful in helping to tune compac
 | Repaired At        | Time when marked as repaired by incremental repair        |
 
 
-## ic-pstats ##
+## pstats ##
 Tool for finding largest partitions. Reads the Index.db files so is relatively quick.
 
 ### Usage ###
 
-    ic-pstats [-n <num>] [-t <snapshot>] [-f <filter>] <keyspace> <column-family>
+    ic-sstable-tools pstats [-n <num>] [-t <snapshot>] [-f <filter>] <keyspace> <column-family>
 
 | -h         | Display help                                                                    |
 |------------|---------------------------------------------------------------------------------|
@@ -150,12 +163,12 @@ SSTables: Metadata about sstables as it relates to partitions.
 | Avg Partition Size                                                     | Average uncompressed partition size in sstable           |
 | Max Partition Size                                                     | Maximum uncompressed partition size in sstable           |
 
-## ic-cfstats ##
+## cfstats ##
 Tool for getting detailed cell statistics that can help identify issues with data model.
 
 ### Usage ###
 
-    ic-cfstats [-r <limit>] [-n <num>] [-t <snapshot>] [-f <filter>] <keyspace> <column-family>
+    ic-sstable-tools cfstats [-r <limit>] [-n <num>] [-t <snapshot>] [-f <filter>] <keyspace> <column-family>
 | -h         | Display help                                                                    |
 |------------|---------------------------------------------------------------------------------|
 | -b         | Batch mode. Uses progress indicator that is friendly for running in batch jobs. |
@@ -283,12 +296,12 @@ SSTables: Metadata about sstables as it relates to partitions.
 | (range)                                                        | Number of range tombstones                                                                                                                                         |
 | Cell Liveness                                                  | Percentage of live cells. Does not consider tombstones or cell updates shadowing cells. That is it is percentage of non-tombstoned cells to total number of cells. |
 
-## ic-purge ##
+## purge ##
 Finds the largest reclaimable partitions (GCable). Intensive process, effectively does "fake" compactions to calculate metrics.
 
 ### Usage ###
 
-    ic-purge [-r <limit>] [-n <num>] [-t <snapshot>] [-f <filter>] <keyspace> <column-family>
+    ic-sstable-tools purge [-r <limit>] [-n <num>] [-t <snapshot>] [-f <filter>] <keyspace> <column-family>
 
 | -h         | Display help                                                                    |
 |------------|---------------------------------------------------------------------------------|

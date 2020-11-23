@@ -1,0 +1,67 @@
+version: 2
+jobs:
+  build:
+
+    working_directory: ~/cassandra-sstable-tools
+
+    docker:
+      - image: circleci/openjdk:8-jdk-stretch
+
+    steps:
+
+      - checkout
+
+      - restore_cache:
+          keys:
+            - m2-{{ checksum "pom.xml" }}
+            - m2-
+
+      - run: mvn clean install -DoutputDirectory=/tmp/artifacts
+
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: m2-{{ checksum "pom.xml" }}
+
+      - store_test_results:
+          path: ~/cassandra-sstable-tools/target/surefire-reports
+
+      - store_artifacts:
+          path: /tmp/artifacts
+
+      - persist_to_workspace:
+          root: /tmp/artifacts
+          paths:
+            - "ic-sstable-tools*.jar"
+            - "ic-sstable-tools*.rpm"
+            - "ic-sstable-tools*.deb"
+
+  publish-github-release:
+    docker:
+      - image: circleci/golang
+    steps:
+      - attach_workspace:
+          at: ./artifacts
+      - run:
+          name: "Publish Release on GitHub"
+          command: |
+            set -xue
+            go get github.com/tcnksm/ghr
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ./artifacts/
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^cassandra-\d+\.\d+\.\d+$/
+      - publish-github-release:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^cassandra-\d+\.\d+\.\d+$/

@@ -1,97 +1,66 @@
 package com.instaclustr.sstabletools;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+
 import com.google.common.collect.MinMaxPriorityQueue;
+import com.instaclustr.picocli.CLIApplication;
 import com.instaclustr.sstabletools.cassandra.CassandraBackend;
-import org.apache.commons.cli.*;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
-import java.util.*;
+@Command(
+    versionProvider = PartitionSizeStatisticsCollector.class,
+    name = "pstats",
+    usageHelpWidth = 128,
+    description = "Partition size statistics for a column family",
+    mixinStandardHelpOptions = true
+)
+public class PartitionSizeStatisticsCollector extends CLIApplication implements Runnable {
 
-/**
- * Collect partition size statistics.
- */
-public class PartitionSizeStatisticsCollector {
-    private static final String HELP_OPTION = "h";
-    private static final String NUMBER_OPTION = "n";
-    private static final String SNAPSHOT_OPTION = "t";
-    private static final String FILTER_OPTION = "f";
-    private static final String BATCH_OPTION = "b";
+    @Option(names = {"-n"}, description = "Number of partitions to display", arity = "1", defaultValue = "10")
+    public int numPartitions;
 
-    private static final Options options = new Options();
-    private static CommandLine cmd;
+    @Option(names = {"-t"}, description = "Snapshot name", arity = "1")
+    public String snapshotName;
 
-    static {
-        Option optHelp = new Option(HELP_OPTION, "help", false, "Print this help message");
-        options.addOption(optHelp);
+    @Option(names = {"-f"}, description = "Filter to sstables (comma separated", defaultValue = "")
+    public String filters;
 
-        Option optNumber = new Option(NUMBER_OPTION, true, "Number of partitions to display");
-        optNumber.setArgName("num");
-        options.addOption(optNumber);
+    @Option(names = {"-b"}, description = "Batch mode", arity = "0")
+    public boolean batch;
 
-        Option optSnapshot = new Option(SNAPSHOT_OPTION, "snapshot", true, "Snapshot name");
-        optSnapshot.setArgName("name");
-        options.addOption(optSnapshot);
+    @Parameters(arity = "2", description = "<keyspace> <table>")
+    public List<String> params;
 
-        Option optFilter = new Option(FILTER_OPTION, "filter", true, "Filter to sstables (comma separated)");
-        optFilter.setArgName("files");
-        options.addOption(optFilter);
-
-        Option optBatch = new Option(BATCH_OPTION, "batch", false, "Batch mode");
-        options.addOption(optBatch);
+    @Override
+    public String getImplementationTitle() {
+        return null;
     }
 
-    private static void printHelp() {
-        HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("ic-pstats <keyspace> <columnFamily>", "Partition size statistics for a column family", options, null);
-    }
-
-    public static void main(String[] args) {
+    @Override
+    public void run() {
         ColumnFamilyProxy cfProxy = null;
         try {
-            CommandLineParser parser = new PosixParser();
-            try {
-                cmd = parser.parse(options, args);
-            } catch (ParseException e) {
-                System.err.println(e.getMessage());
-                printHelp();
-                System.exit(1);
-            }
-
-            if (cmd.hasOption(HELP_OPTION)) {
-                printHelp();
-                System.exit(0);
-            }
-
-            if (cmd.getArgs().length != 2) {
-                printHelp();
-                System.exit(1);
-            }
-
-            final int numPartitions;
-            if (cmd.hasOption(NUMBER_OPTION)) {
-                numPartitions = Integer.valueOf(cmd.getOptionValue(NUMBER_OPTION));
-            } else {
-                numPartitions = 10;
-            }
-
-            String snapshotName = null;
-            if (cmd.hasOption(SNAPSHOT_OPTION)) {
-                snapshotName = cmd.getOptionValue(SNAPSHOT_OPTION);
-            }
-
             Collection<String> filter = null;
-            if (cmd.hasOption(FILTER_OPTION)) {
-                String[] names = cmd.getOptionValue(FILTER_OPTION).split(",");
+
+            if (!filters.isEmpty()) {
+                String[] names = filters.split(",");
                 filter = Arrays.asList(names);
             }
 
             boolean interactive = true;
-            if (cmd.hasOption(BATCH_OPTION)) {
+            if (batch) {
                 interactive = false;
             }
 
-            args = cmd.getArgs();
-            String ksName = args[0];
-            String cfName = args[1];
+            final String ksName = params.get(0);
+            final String cfName = params.get(1);
 
             cfProxy = CassandraBackend.getInstance().getColumnFamily(ksName, cfName, snapshotName, filter);
             Collection<SSTableReader> sstableReaders = cfProxy.getIndexReaders();
@@ -109,14 +78,14 @@ public class PartitionSizeStatisticsCollector {
             long partitionCount = 0;
 
             MinMaxPriorityQueue<PartitionStatistics> largestPartitions = MinMaxPriorityQueue
-                    .orderedBy(PartitionStatistics.SIZE_COMPARATOR)
-                    .maximumSize(numPartitions)
-                    .create();
+                .orderedBy(PartitionStatistics.SIZE_COMPARATOR)
+                .maximumSize(numPartitions)
+                .create();
 
             MinMaxPriorityQueue<PartitionStatistics> tableCountLeaders = MinMaxPriorityQueue
-                    .orderedBy(PartitionStatistics.SSTABLE_COUNT_COMPARATOR)
-                    .maximumSize(numPartitions)
-                    .create();
+                .orderedBy(PartitionStatistics.SSTABLE_COUNT_COMPARATOR)
+                .maximumSize(numPartitions)
+                .create();
 
             PartitionReader partitionReader = new PartitionReader(sstableReaders, totalLength);
             PartitionStatistics stat;
@@ -159,9 +128,9 @@ public class PartitionSizeStatisticsCollector {
             while (!largestPartitions.isEmpty()) {
                 PartitionStatistics p = largestPartitions.remove();
                 lptb.addRow(
-                        cfProxy.formatKey(p.key),
-                        Util.humanReadableByteCount(p.size),
-                        Integer.toString(p.tableCount)
+                    cfProxy.formatKey(p.key),
+                    Util.humanReadableByteCount(p.size),
+                    Integer.toString(p.tableCount)
                 );
             }
             System.out.println(lptb);
@@ -172,9 +141,9 @@ public class PartitionSizeStatisticsCollector {
             while (!tableCountLeaders.isEmpty()) {
                 PartitionStatistics p = tableCountLeaders.remove();
                 sctb.addRow(
-                        cfProxy.formatKey(p.key),
-                        Long.toString(p.tableCount),
-                        Util.humanReadableByteCount(p.size)
+                    cfProxy.formatKey(p.key),
+                    Long.toString(p.tableCount),
+                    Util.humanReadableByteCount(p.size)
                 );
             }
             System.out.println(sctb);
@@ -182,14 +151,14 @@ public class PartitionSizeStatisticsCollector {
             System.out.println("SSTables:");
             TableBuilder cltb = new TableBuilder();
             cltb.setHeader(
-                    "SSTable",
-                    "Size",
-                    "Min Timestamp",
-                    "Max Timestamp",
-                    "Level",
-                    "Partitions",
-                    "Avg Partition Size",
-                    "Max Partition Size"
+                "SSTable",
+                "Size",
+                "Min Timestamp",
+                "Max Timestamp",
+                "Level",
+                "Partitions",
+                "Avg Partition Size",
+                "Max Partition Size"
             );
             List<SSTableStatistics> sstableStats = partitionReader.getSSTableStatistics();
             Comparator<SSTableStatistics> comparator = SSTableStatistics.LIVENESS_COMPARATOR;
@@ -202,19 +171,17 @@ public class PartitionSizeStatisticsCollector {
             Collections.sort(sstableStats, comparator);
             for (SSTableStatistics stats : sstableStats) {
                 cltb.addRow(
-                        stats.filename,
-                        Util.humanReadableByteCount(stats.size),
-                        Util.UTC_DATE_FORMAT.format(new Date(stats.minTimestamp / 1000)),
-                        Util.UTC_DATE_FORMAT.format(new Date(stats.maxTimestamp / 1000)),
-                        Integer.toString(stats.level),
-                        Long.toString(stats.partitionCount),
-                        Util.humanReadableByteCount(stats.size / stats.partitionCount),
-                        Util.humanReadableByteCount(stats.maxPartitionSize)
+                    stats.filename,
+                    Util.humanReadableByteCount(stats.size),
+                    Util.UTC_DATE_FORMAT.format(new Date(stats.minTimestamp / 1000)),
+                    Util.UTC_DATE_FORMAT.format(new Date(stats.maxTimestamp / 1000)),
+                    Integer.toString(stats.level),
+                    Long.toString(stats.partitionCount),
+                    Util.humanReadableByteCount(stats.size / stats.partitionCount),
+                    Util.humanReadableByteCount(stats.maxPartitionSize)
                 );
             }
             System.out.println(cltb);
-
-            System.exit(0);
         } catch (Throwable t) {
             if (cfProxy != null) {
                 cfProxy.close();

@@ -1,109 +1,77 @@
 package com.instaclustr.sstabletools;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+
 import com.google.common.collect.MinMaxPriorityQueue;
 import com.google.common.util.concurrent.RateLimiter;
+import com.instaclustr.picocli.CLIApplication;
 import com.instaclustr.sstabletools.cassandra.CassandraBackend;
-import org.apache.commons.cli.*;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
-import java.util.*;
+@Command(
+    versionProvider = ColumnFamilyStatisticsCollector.class,
+    name = "cfstats",
+    usageHelpWidth = 128,
+    description = "Detailed statistics about cells in a column family",
+    mixinStandardHelpOptions = true
+)
+public class ColumnFamilyStatisticsCollector extends CLIApplication implements Runnable {
 
-/**
- * Collect statistics about a column family.
- */
-public class ColumnFamilyStatisticsCollector {
-    private static final String HELP_OPTION = "h";
-    private static final String NUMBER_OPTION = "n";
-    private static final String RATELIMIT_OPTION = "r";
-    private static final String SNAPSHOT_OPTION = "t";
-    private static final String FILTER_OPTION = "f";
-    private static final String BATCH_OPTION = "b";
+    @Option(names = {"-n"}, description = "Number of partitions to display, defaults to 10", arity = "1", defaultValue = "10")
+    public int numPartitions;
 
-    private static final Options options = new Options();
-    private static CommandLine cmd;
+    @Option(names = {"-r"}, description = "Limit read throughput (in Mb/s), defaults to unlimited (0)", arity = "1", defaultValue = "0")
+    public int limit;
 
-    static {
-        Option optHelp = new Option(HELP_OPTION, "help", false, "Print this help message");
-        options.addOption(optHelp);
+    @Option(names = {"-t"}, description = "Snapshot name", arity = "1")
+    public String snapshotName;
 
-        Option optNumber = new Option(NUMBER_OPTION, true, "Number of partitions to display");
-        optNumber.setArgName("num");
-        options.addOption(optNumber);
+    @Option(names = {"-f"}, description = "Filter to sstables (comma separated", defaultValue = "")
+    public String filters;
 
-        Option optRateLimit = new Option(RATELIMIT_OPTION, "rate", true, "Limit read throughput (in Mb/s)");
-        optRateLimit.setArgName("limit");
-        options.addOption(optRateLimit);
+    @Option(names = {"-b"}, description = "Batch mode", arity = "0")
+    public boolean batch;
 
-        Option optSnapshot = new Option(SNAPSHOT_OPTION, "snapshot", true, "Snapshot name");
-        optSnapshot.setArgName("name");
-        options.addOption(optSnapshot);
+    @Parameters(arity = "2", description = "<keyspace> <table>")
+    public List<String> params;
 
-        Option optFilter = new Option(FILTER_OPTION, "filter", true, "Filter to sstables (comma separated)");
-        optFilter.setArgName("files");
-        options.addOption(optFilter);
-
-        Option optBatch = new Option(BATCH_OPTION, "batch", false, "Batch mode");
-        options.addOption(optBatch);
+    @Override
+    public String getImplementationTitle() {
+        return "cfstats";
     }
 
-    private static void printHelp() {
-        HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("ic-cfstats <keyspace> <columnFamily>", "Detailed statistics about cells in a column family", options, null);
-    }
-
-    public static void main(String[] args) {
+    @Override
+    public void run() {
         ColumnFamilyProxy cfProxy = null;
         try {
-            CommandLineParser parser = new PosixParser();
-            try {
-                cmd = parser.parse(options, args);
-            } catch (ParseException e) {
-                System.err.println(e.getMessage());
-                printHelp();
-                System.exit(1);
-            }
-
-            if (cmd.hasOption(HELP_OPTION)) {
-                printHelp();
-                System.exit(0);
-            }
-
-            if (cmd.getArgs().length != 2) {
-                printHelp();
-                System.exit(1);
-            }
-
-            final int numPartitions;
-            if (cmd.hasOption(NUMBER_OPTION)) {
-                numPartitions = Integer.valueOf(cmd.getOptionValue(NUMBER_OPTION));
-            } else {
-                numPartitions = 10;
-            }
 
             RateLimiter rateLimiter = null;
-            if (cmd.hasOption(RATELIMIT_OPTION)) {
-                double bytesPerSecond = Integer.valueOf(cmd.getOptionValue(RATELIMIT_OPTION)) * 1024.0 * 1024.0;
+            if (limit != 0) {
+                double bytesPerSecond = limit * 1024.0 * 1024.0;
                 rateLimiter = RateLimiter.create(bytesPerSecond);
             }
 
-            String snapshotName = null;
-            if (cmd.hasOption(SNAPSHOT_OPTION)) {
-                snapshotName = cmd.getOptionValue(SNAPSHOT_OPTION);
-            }
-
             Collection<String> filter = null;
-            if (cmd.hasOption(FILTER_OPTION)) {
-                String[] names = cmd.getOptionValue(FILTER_OPTION).split(",");
+
+            if (!filters.isEmpty()) {
+                String[] names = filters.split(",");
                 filter = Arrays.asList(names);
             }
 
             boolean interactive = true;
-            if (cmd.hasOption(BATCH_OPTION)) {
+            if (batch) {
                 interactive = false;
             }
 
-            args = cmd.getArgs();
-            String ksName = args[0];
-            String cfName = args[1];
+            final String ksName = params.get(0);
+            final String cfName = params.get(1);
 
             cfProxy = CassandraBackend.getInstance().getColumnFamily(ksName, cfName, snapshotName, filter);
             Collection<SSTableReader> sstableReaders = cfProxy.getDataReaders(rateLimiter);
@@ -124,29 +92,29 @@ public class ColumnFamilyStatisticsCollector {
             long rowDeleteCount = 0;
 
             MinMaxPriorityQueue<PartitionStatistics> largestPartitions = MinMaxPriorityQueue
-                    .orderedBy(PartitionStatistics.SIZE_COMPARATOR)
-                    .maximumSize(numPartitions)
-                    .create();
+                .orderedBy(PartitionStatistics.SIZE_COMPARATOR)
+                .maximumSize(numPartitions)
+                .create();
 
             MinMaxPriorityQueue<PartitionStatistics> widestPartitions = MinMaxPriorityQueue
-                    .orderedBy(PartitionStatistics.WIDE_COMPARATOR)
-                    .maximumSize(numPartitions)
-                    .create();
+                .orderedBy(PartitionStatistics.WIDE_COMPARATOR)
+                .maximumSize(numPartitions)
+                .create();
 
             MinMaxPriorityQueue<PartitionStatistics> tombstoneLeaders = MinMaxPriorityQueue
-                    .orderedBy(PartitionStatistics.TOMBSTONE_COMPARATOR)
-                    .maximumSize(numPartitions)
-                    .create();
+                .orderedBy(PartitionStatistics.TOMBSTONE_COMPARATOR)
+                .maximumSize(numPartitions)
+                .create();
 
             MinMaxPriorityQueue<PartitionStatistics> mostDeletedRows = MinMaxPriorityQueue
-                    .orderedBy(PartitionStatistics.MOST_DELETED_ROWS_COMPARATOR)
-                    .maximumSize(numPartitions)
-                    .create();
+                .orderedBy(PartitionStatistics.MOST_DELETED_ROWS_COMPARATOR)
+                .maximumSize(numPartitions)
+                .create();
 
             MinMaxPriorityQueue<PartitionStatistics> tableCountLeaders = MinMaxPriorityQueue
-                    .orderedBy(PartitionStatistics.SSTABLE_COUNT_COMPARATOR)
-                    .maximumSize(numPartitions)
-                    .create();
+                .orderedBy(PartitionStatistics.SSTABLE_COUNT_COMPARATOR)
+                .maximumSize(numPartitions)
+                .create();
 
             PartitionReader partitionReader = new PartitionReader(sstableReaders, totalLength);
             PartitionStatistics pStats;
@@ -217,14 +185,14 @@ public class ColumnFamilyStatisticsCollector {
             while (!largestPartitions.isEmpty()) {
                 PartitionStatistics p = largestPartitions.remove();
                 lptb.addRow(
-                        cfProxy.formatKey(p.key),
-                        Util.humanReadableByteCount(p.size),
-                        Long.toString(p.rowCount),
-                        Long.toString(p.rowDeleteCount),
-                        Long.toString(p.tombstoneCount),
-                        Long.toString(p.droppableTombstoneCount),
-                        Long.toString(p.cellCount),
-                        Long.toString(p.tableCount)
+                    cfProxy.formatKey(p.key),
+                    Util.humanReadableByteCount(p.size),
+                    Long.toString(p.rowCount),
+                    Long.toString(p.rowDeleteCount),
+                    Long.toString(p.tombstoneCount),
+                    Long.toString(p.droppableTombstoneCount),
+                    Long.toString(p.cellCount),
+                    Long.toString(p.tableCount)
                 );
             }
             System.out.println(lptb);
@@ -235,14 +203,14 @@ public class ColumnFamilyStatisticsCollector {
             while (!widestPartitions.isEmpty()) {
                 PartitionStatistics p = widestPartitions.remove();
                 wptb.addRow(
-                        cfProxy.formatKey(p.key),
-                        Long.toString(p.rowCount),
-                        Long.toString(p.rowDeleteCount),
-                        Long.toString(p.cellCount),
-                        Long.toString(p.tombstoneCount),
-                        Long.toString(p.droppableTombstoneCount),
-                        Util.humanReadableByteCount(p.size),
-                        Long.toString(p.tableCount)
+                    cfProxy.formatKey(p.key),
+                    Long.toString(p.rowCount),
+                    Long.toString(p.rowDeleteCount),
+                    Long.toString(p.cellCount),
+                    Long.toString(p.tombstoneCount),
+                    Long.toString(p.droppableTombstoneCount),
+                    Util.humanReadableByteCount(p.size),
+                    Long.toString(p.tableCount)
                 );
             }
             System.out.println(wptb);
@@ -254,11 +222,11 @@ public class ColumnFamilyStatisticsCollector {
                 while (!mostDeletedRows.isEmpty()) {
                     PartitionStatistics p = mostDeletedRows.remove();
                     mdtb.addRow(
-                            cfProxy.formatKey(p.key),
-                            Long.toString(p.rowCount),
-                            Long.toString(p.rowDeleteCount),
-                            Util.humanReadableByteCount(p.size),
-                            Long.toString(p.tableCount)
+                        cfProxy.formatKey(p.key),
+                        Long.toString(p.rowCount),
+                        Long.toString(p.rowDeleteCount),
+                        Util.humanReadableByteCount(p.size),
+                        Long.toString(p.tableCount)
                     );
                 }
                 System.out.println(mdtb);
@@ -271,13 +239,13 @@ public class ColumnFamilyStatisticsCollector {
                 while (!tombstoneLeaders.isEmpty()) {
                     PartitionStatistics p = tombstoneLeaders.remove();
                     tltb.addRow(
-                            cfProxy.formatKey(p.key),
-                            Long.toString(p.tombstoneCount),
-                            Long.toString(p.droppableTombstoneCount),
-                            Long.toString(p.rowCount),
-                            Long.toString(p.cellCount),
-                            Util.humanReadableByteCount(p.size),
-                            Long.toString(p.tableCount)
+                        cfProxy.formatKey(p.key),
+                        Long.toString(p.tombstoneCount),
+                        Long.toString(p.droppableTombstoneCount),
+                        Long.toString(p.rowCount),
+                        Long.toString(p.cellCount),
+                        Util.humanReadableByteCount(p.size),
+                        Long.toString(p.tableCount)
                     );
                 }
                 System.out.println(tltb);
@@ -289,13 +257,13 @@ public class ColumnFamilyStatisticsCollector {
             while (!tableCountLeaders.isEmpty()) {
                 PartitionStatistics p = tableCountLeaders.remove();
                 sctb.addRow(
-                        cfProxy.formatKey(p.key),
-                        Long.toString(p.tableCount),
-                        Util.humanReadableByteCount(p.size),
-                        Long.toString(p.rowCount),
-                        Long.toString(p.cellCount),
-                        Long.toString(p.tombstoneCount),
-                        Long.toString(p.droppableTombstoneCount)
+                    cfProxy.formatKey(p.key),
+                    Long.toString(p.tableCount),
+                    Util.humanReadableByteCount(p.size),
+                    Long.toString(p.rowCount),
+                    Long.toString(p.cellCount),
+                    Long.toString(p.tombstoneCount),
+                    Long.toString(p.droppableTombstoneCount)
                 );
             }
             System.out.println(sctb);
@@ -303,22 +271,22 @@ public class ColumnFamilyStatisticsCollector {
             System.out.println("SSTables:");
             TableBuilder cltb = new TableBuilder();
             cltb.setHeader(
-                    "SSTable",
-                    "Size",
-                    "Min Timestamp",
-                    "Max Timestamp",
-                    "Partitions",
-                    "(deleted)",
-                    "(avg size)",
-                    "(max size)",
-                    "Rows",
-                    "(deleted)",
-                    "Cells",
-                    "(expiring)",
-                    "Tombstones",
-                    "(droppable)",
-                    "(range)",
-                    "Cell Liveness"
+                "SSTable",
+                "Size",
+                "Min Timestamp",
+                "Max Timestamp",
+                "Partitions",
+                "(deleted)",
+                "(avg size)",
+                "(max size)",
+                "Rows",
+                "(deleted)",
+                "Cells",
+                "(expiring)",
+                "Tombstones",
+                "(droppable)",
+                "(range)",
+                "Cell Liveness"
             );
 
             List<SSTableStatistics> sstableStats = partitionReader.getSSTableStatistics();
@@ -332,27 +300,25 @@ public class ColumnFamilyStatisticsCollector {
             Collections.sort(sstableStats, comparator);
             for (SSTableStatistics ts : sstableStats) {
                 cltb.addRow(
-                        ts.filename,
-                        Util.humanReadableByteCount(ts.size),
-                        Util.UTC_DATE_FORMAT.format(new Date(ts.minTimestamp / 1000)),
-                        Util.UTC_DATE_FORMAT.format(new Date(ts.maxTimestamp / 1000)),
-                        Long.toString(ts.partitionCount),
-                        Long.toString(ts.partitionDeleteCount),
-                        Util.humanReadableByteCount(ts.size / ts.partitionCount),
-                        Util.humanReadableByteCount(ts.maxPartitionSize),
-                        Long.toString(ts.rowCount),
-                        Long.toString(ts.rowDeleteCount),
-                        Long.toString(ts.cellCount),
-                        Long.toString(ts.expiringCellCount),
-                        Long.toString(ts.tombstoneCount),
-                        Long.toString(ts.droppableTombstoneCount),
-                        Long.toString(ts.rangeTombstoneCount),
-                        Integer.toString(ts.getLiveness()) + "%"
+                    ts.filename,
+                    Util.humanReadableByteCount(ts.size),
+                    Util.UTC_DATE_FORMAT.format(new Date(ts.minTimestamp / 1000)),
+                    Util.UTC_DATE_FORMAT.format(new Date(ts.maxTimestamp / 1000)),
+                    Long.toString(ts.partitionCount),
+                    Long.toString(ts.partitionDeleteCount),
+                    Util.humanReadableByteCount(ts.size / ts.partitionCount),
+                    Util.humanReadableByteCount(ts.maxPartitionSize),
+                    Long.toString(ts.rowCount),
+                    Long.toString(ts.rowDeleteCount),
+                    Long.toString(ts.cellCount),
+                    Long.toString(ts.expiringCellCount),
+                    Long.toString(ts.tombstoneCount),
+                    Long.toString(ts.droppableTombstoneCount),
+                    Long.toString(ts.rangeTombstoneCount),
+                    Integer.toString(ts.getLiveness()) + "%"
                 );
             }
             System.out.println(cltb);
-
-            System.exit(0);
         } catch (Throwable t) {
             if (cfProxy != null) {
                 cfProxy.close();
