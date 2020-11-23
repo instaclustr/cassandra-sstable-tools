@@ -2,8 +2,8 @@
 ```
 $ git clone git@github.com:instaclustr/cassandra-sstable-tools.git
 $ cd cassandra-sstable-tools
-# Select the correct branch for major version (default is cassandra-3.11)
-$ git checkout cassandra-3.11
+# Select the correct branch for major version (default is cassandra-4.0)
+$ git checkout cassandra-4.0
 $ ant
 ```
 
