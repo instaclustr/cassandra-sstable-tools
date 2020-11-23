@@ -1,4 +1,4 @@
-package com.instaclustr.sstabletools;
+package com.instaclustr.sstabletools.cli;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -8,20 +8,29 @@ import java.util.Date;
 import java.util.List;
 
 import com.google.common.collect.MinMaxPriorityQueue;
-import com.instaclustr.picocli.CLIApplication;
+import com.instaclustr.sstabletools.ColumnFamilyProxy;
+import com.instaclustr.sstabletools.Histogram;
+import com.instaclustr.sstabletools.PartitionReader;
+import com.instaclustr.sstabletools.PartitionStatistics;
+import com.instaclustr.sstabletools.ProgressBar;
+import com.instaclustr.sstabletools.SSTableReader;
+import com.instaclustr.sstabletools.SSTableStatistics;
+import com.instaclustr.sstabletools.Snapshot;
+import com.instaclustr.sstabletools.TableBuilder;
+import com.instaclustr.sstabletools.Util;
 import com.instaclustr.sstabletools.cassandra.CassandraBackend;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 @Command(
-    versionProvider = PartitionSizeStatisticsCollector.class,
+    versionProvider = CLI.class,
     name = "pstats",
     usageHelpWidth = 128,
     description = "Partition size statistics for a column family",
     mixinStandardHelpOptions = true
 )
-public class PartitionSizeStatisticsCollector extends CLIApplication implements Runnable {
+public class PartitionSizeStatisticsCollector implements Runnable {
 
     @Option(names = {"-n"}, description = "Number of partitions to display", arity = "1", defaultValue = "10")
     public int numPartitions;
@@ -38,31 +47,26 @@ public class PartitionSizeStatisticsCollector extends CLIApplication implements 
     @Parameters(arity = "2", description = "<keyspace> <table>")
     public List<String> params;
 
-    @Override
-    public String getImplementationTitle() {
-        return null;
-    }
 
     @Override
     public void run() {
-        ColumnFamilyProxy cfProxy = null;
-        try {
-            Collection<String> filter = null;
 
-            if (!filters.isEmpty()) {
-                String[] names = filters.split(",");
-                filter = Arrays.asList(names);
-            }
+        Collection<String> filter = null;
 
-            boolean interactive = true;
-            if (batch) {
-                interactive = false;
-            }
+        if (!filters.isEmpty()) {
+            String[] names = filters.split(",");
+            filter = Arrays.asList(names);
+        }
 
-            final String ksName = params.get(0);
-            final String cfName = params.get(1);
+        boolean interactive = true;
+        if (batch) {
+            interactive = false;
+        }
 
-            cfProxy = CassandraBackend.getInstance().getColumnFamily(ksName, cfName, snapshotName, filter);
+        final String ksName = params.get(0);
+        final String cfName = params.get(1);
+
+        try (final ColumnFamilyProxy cfProxy = CassandraBackend.getInstance().getColumnFamily(ksName, cfName, snapshotName, filter)) {
             Collection<SSTableReader> sstableReaders = cfProxy.getIndexReaders();
             long totalLength = 0;
             for (SSTableReader reader : sstableReaders) {
@@ -182,12 +186,6 @@ public class PartitionSizeStatisticsCollector extends CLIApplication implements 
                 );
             }
             System.out.println(cltb);
-        } catch (Throwable t) {
-            if (cfProxy != null) {
-                cfProxy.close();
-            }
-            t.printStackTrace();
-            System.exit(1);
         }
     }
 }

@@ -107,8 +107,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
     }
 
     @Override
-    // TODO rate limiter not used
-    public Collection<SSTableReader> getDataReaders(RateLimiter rateLimiter) {
+    public Collection<SSTableReader> getDataReaders() {
         Collection<SSTableReader> readers = new ArrayList<>(sstables.size());
         for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
             try {
@@ -130,8 +129,8 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
     }
 
     @Override
-    public PurgeStatisticsReader getPurgeStatisticsReader(RateLimiter rateLimiter) {
-        return new PurgeStatisticBackend(cfStore, sstables, rateLimiter, cfStore.metadata().params.gcGraceSeconds);
+    public PurgeStatisticsReader getPurgeStatisticsReader() {
+        return new PurgeStatisticBackend(cfStore, sstables, cfStore.metadata().params.gcGraceSeconds);
     }
 
     @Override

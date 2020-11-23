@@ -20,18 +20,16 @@ public interface ColumnFamilyProxy extends AutoCloseable {
     /**
      * Get readers for SSTable Data.db files for this column family.
      *
-     * @param rateLimiter Rate limiter for readers.
      * @return Collection of readers for SSTable Data.db files.
      */
-    Collection<SSTableReader> getDataReaders(RateLimiter rateLimiter);
+    Collection<SSTableReader> getDataReaders();
 
     /**
      * Get purge statistics reader.
      *
-     * @param rateLimiter Rater limiter for reading.
      * @return Reader for purge statistics.
      */
-    PurgeStatisticsReader getPurgeStatisticsReader(RateLimiter rateLimiter);
+    PurgeStatisticsReader getPurgeStatisticsReader();
 
     /**
      * Format partition key into human readable format.

@@ -1,6 +1,9 @@
-package com.instaclustr.sstabletools;
+package com.instaclustr.sstabletools.cli;
 
-import com.instaclustr.picocli.CLIApplication;
+import javax.validation.ValidationException;
+import java.io.PrintWriter;
+
+import com.instaclustr.sstabletools.PurgeStatisticsCollector;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
@@ -18,7 +21,7 @@ import picocli.CommandLine.Spec;
     versionProvider = CLI.class,
     usageHelpWidth = 128
 )
-public class CLI extends CLIApplication implements Runnable {
+public class CLI extends JarManifestVersionProvider implements Runnable {
 
     @Spec
     private CommandSpec spec;
@@ -28,7 +31,21 @@ public class CLI extends CLIApplication implements Runnable {
     }
 
     public static void main(String[] args, boolean exit) {
-        int exitCode = execute(new CommandLine(new CLI()), args);
+        int exitCode = new CommandLine(new CLI())
+            .setErr(new PrintWriter(System.err))
+            .setOut(new PrintWriter(System.err))
+            .setColorScheme(new CommandLine.Help.ColorScheme.Builder().ansi(CommandLine.Help.Ansi.ON).build())
+            .setExecutionExceptionHandler((ex, cmdLine, parseResult) -> {
+
+                if (ex instanceof ValidationException) {
+                    return 1;
+                }
+
+                ex.printStackTrace();
+
+                return 1;
+            })
+            .execute(args);
 
         if (exit) {
             System.exit(exitCode);

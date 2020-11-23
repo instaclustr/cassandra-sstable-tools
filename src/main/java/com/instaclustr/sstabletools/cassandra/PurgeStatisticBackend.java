@@ -48,8 +48,7 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
      */
     private ColumnFamilyStore cfs;
 
-    // TODO unused rate limiter because sstable.getScanner() does not accept rate limiter anymore
-    public PurgeStatisticBackend(ColumnFamilyStore cfs, Collection<org.apache.cassandra.io.sstable.format.SSTableReader> sstables, RateLimiter rateLimiter, int gcGrace) {
+    public PurgeStatisticBackend(ColumnFamilyStore cfs, Collection<org.apache.cassandra.io.sstable.format.SSTableReader> sstables, int gcGrace) {
         this.gcBefore = Util.NOW_SECONDS - gcGrace;
         bytesRead = 0;
         readerQueue = new PriorityQueue<>(sstables.size());

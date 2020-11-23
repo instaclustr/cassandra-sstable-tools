@@ -81,29 +81,10 @@
     
     <dependencies>
         <dependency>
-            <groupId>com.instaclustr</groupId>
-            <artifactId>commons</artifactId>
-            <version>1.4.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.kubernetes</groupId>
-                    <artifactId>client-java</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.datastax.oss</groupId>
-                    <artifactId>java-driver-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.hibernate.validator</groupId>
-                    <artifactId>hibernate-validator</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.glassfish</groupId>
-                    <artifactId>jakarta.el</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>4.5.2</version>
         </dependency>
-        
         <dependency>
             <groupId>org.apache.cassandra</groupId>
             <artifactId>cassandra-all</artifactId>
@@ -111,7 +92,6 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
-    
     
     <build>
         <finalName>ic-sstable-tools</finalName>
@@ -203,28 +183,9 @@
                             <transformers>
                                 <transformer
                                     implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.instaclustr.sstabletools.CLI</mainClass>
+                                    <mainClass>com.instaclustr.sstabletools.cli.CLI</mainClass>
                                 </transformer>
                             </transformers>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                        <exclude>META-INF/*.MF</exclude>
-                                        <exclude>META-INF/DEPENDENCIES</exclude>
-                                        <exclude>META-INF/LICENCE</exclude>
-                                        <exclude>META-INF/NOTICE</exclude>
-                                        <exclude>META-INF/NOTICE.txt</exclude>
-                                        <exclude>META-INF/LICENCE.txt</exclude>
-                                        <exclude>META-INF/LICENSE.txt</exclude>
-                                        <exclude>META-INF/LICENSE</exclude>
-                                        <exclude>LICENSE.txt</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
                         </configuration>
                     </execution>
                 </executions>

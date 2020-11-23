@@ -1,4 +1,4 @@
-package com.instaclustr.sstabletools;
+package com.instaclustr.sstabletools.cli;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -9,26 +9,32 @@ import java.util.List;
 
 import com.google.common.collect.MinMaxPriorityQueue;
 import com.google.common.util.concurrent.RateLimiter;
-import com.instaclustr.picocli.CLIApplication;
+import com.instaclustr.sstabletools.ColumnFamilyProxy;
+import com.instaclustr.sstabletools.Histogram;
+import com.instaclustr.sstabletools.PartitionReader;
+import com.instaclustr.sstabletools.PartitionStatistics;
+import com.instaclustr.sstabletools.ProgressBar;
+import com.instaclustr.sstabletools.SSTableReader;
+import com.instaclustr.sstabletools.SSTableStatistics;
+import com.instaclustr.sstabletools.Snapshot;
+import com.instaclustr.sstabletools.TableBuilder;
+import com.instaclustr.sstabletools.Util;
 import com.instaclustr.sstabletools.cassandra.CassandraBackend;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 @Command(
-    versionProvider = ColumnFamilyStatisticsCollector.class,
+    versionProvider = CLI.class,
     name = "cfstats",
     usageHelpWidth = 128,
     description = "Detailed statistics about cells in a column family",
     mixinStandardHelpOptions = true
 )
-public class ColumnFamilyStatisticsCollector extends CLIApplication implements Runnable {
+public class ColumnFamilyStatisticsCollector implements Runnable {
 
     @Option(names = {"-n"}, description = "Number of partitions to display, defaults to 10", arity = "1", defaultValue = "10")
     public int numPartitions;
-
-    @Option(names = {"-r"}, description = "Limit read throughput (in Mb/s), defaults to unlimited (0)", arity = "1", defaultValue = "0")
-    public int limit;
 
     @Option(names = {"-t"}, description = "Snapshot name", arity = "1")
     public String snapshotName;
@@ -43,38 +49,25 @@ public class ColumnFamilyStatisticsCollector extends CLIApplication implements R
     public List<String> params;
 
     @Override
-    public String getImplementationTitle() {
-        return "cfstats";
-    }
-
-    @Override
     public void run() {
-        ColumnFamilyProxy cfProxy = null;
-        try {
 
-            RateLimiter rateLimiter = null;
-            if (limit != 0) {
-                double bytesPerSecond = limit * 1024.0 * 1024.0;
-                rateLimiter = RateLimiter.create(bytesPerSecond);
-            }
+        Collection<String> filter = null;
 
-            Collection<String> filter = null;
+        if (!filters.isEmpty()) {
+            String[] names = filters.split(",");
+            filter = Arrays.asList(names);
+        }
 
-            if (!filters.isEmpty()) {
-                String[] names = filters.split(",");
-                filter = Arrays.asList(names);
-            }
+        boolean interactive = true;
+        if (batch) {
+            interactive = false;
+        }
 
-            boolean interactive = true;
-            if (batch) {
-                interactive = false;
-            }
+        final String ksName = params.get(0);
+        final String cfName = params.get(1);
 
-            final String ksName = params.get(0);
-            final String cfName = params.get(1);
-
-            cfProxy = CassandraBackend.getInstance().getColumnFamily(ksName, cfName, snapshotName, filter);
-            Collection<SSTableReader> sstableReaders = cfProxy.getDataReaders(rateLimiter);
+        try (ColumnFamilyProxy cfProxy = CassandraBackend.getInstance().getColumnFamily(ksName, cfName, snapshotName, filter)) {
+            Collection<SSTableReader> sstableReaders = cfProxy.getDataReaders();
             long totalLength = 0;
             for (SSTableReader reader : sstableReaders) {
                 totalLength += reader.getSSTableStatistics().size;
@@ -315,16 +308,10 @@ public class ColumnFamilyStatisticsCollector extends CLIApplication implements R
                     Long.toString(ts.tombstoneCount),
                     Long.toString(ts.droppableTombstoneCount),
                     Long.toString(ts.rangeTombstoneCount),
-                    Integer.toString(ts.getLiveness()) + "%"
+                    ts.getLiveness() + "%"
                 );
             }
             System.out.println(cltb);
-        } catch (Throwable t) {
-            if (cfProxy != null) {
-                cfProxy.close();
-            }
-            t.printStackTrace();
-            System.exit(1);
         }
     }
 }

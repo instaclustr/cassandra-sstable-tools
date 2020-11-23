@@ -5,9 +5,8 @@ import java.util.Collection;
 import java.util.List;
 
 import com.google.common.collect.MinMaxPriorityQueue;
-import com.google.common.util.concurrent.RateLimiter;
-import com.instaclustr.picocli.CLIApplication;
 import com.instaclustr.sstabletools.cassandra.CassandraBackend;
+import com.instaclustr.sstabletools.cli.CLI;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -16,19 +15,16 @@ import picocli.CommandLine.Parameters;
  * Collect partition size statistics.
  */
 @Command(
-    versionProvider = PurgeStatisticsCollector.class,
+    versionProvider = CLI.class,
     name = "purge",
     usageHelpWidth = 128,
     description = "Statistics about reclaimable data for a column family",
     mixinStandardHelpOptions = true
 )
-public class PurgeStatisticsCollector extends CLIApplication implements Runnable {
+public class PurgeStatisticsCollector implements Runnable {
 
     @Option(names = {"-n"}, description = "Number of partitions to display, defaults to 10", arity = "1", defaultValue = "10")
     public int numPartitions;
-
-    @Option(names = {"-r"}, description = "Limit read throughput (in Mb/s), defaults to unlimited (0)", arity = "1", defaultValue = "0")
-    public int limit;
 
     @Option(names = {"-t"}, description = "Snapshot name", arity = "1")
     public String snapshotName;
@@ -44,31 +40,24 @@ public class PurgeStatisticsCollector extends CLIApplication implements Runnable
 
     @Override
     public void run() {
-        ColumnFamilyProxy cfProxy = null;
-        try {
-            RateLimiter rateLimiter = null;
-            if (limit != 0) {
-                double bytesPerSecond = limit * 1024.0 * 1024.0;
-                rateLimiter = RateLimiter.create(bytesPerSecond);
-            }
 
-            Collection<String> filter = null;
+        Collection<String> filter = null;
 
-            if (!filters.isEmpty()) {
-                String[] names = filters.split(",");
-                filter = Arrays.asList(names);
-            }
+        if (!filters.isEmpty()) {
+            String[] names = filters.split(",");
+            filter = Arrays.asList(names);
+        }
 
-            boolean interactive = true;
-            if (batch) {
-                interactive = false;
-            }
+        boolean interactive = true;
+        if (batch) {
+            interactive = false;
+        }
 
-            final String ksName = params.get(0);
-            final String cfName = params.get(1);
+        final String ksName = params.get(0);
+        final String cfName = params.get(1);
 
-            cfProxy = CassandraBackend.getInstance().getColumnFamily(ksName, cfName, snapshotName, filter);
-            PurgeStatisticsReader reader = cfProxy.getPurgeStatisticsReader(rateLimiter);
+        try (ColumnFamilyProxy cfProxy = CassandraBackend.getInstance().getColumnFamily(ksName, cfName, snapshotName, filter)) {
+            PurgeStatisticsReader reader = cfProxy.getPurgeStatisticsReader();
 
             long totalSize = 0;
             long totalReclaim = 0;
@@ -109,18 +98,6 @@ public class PurgeStatisticsCollector extends CLIApplication implements Runnable
                 );
             }
             System.out.println(tb);
-        } catch (Throwable t) {
-            if (cfProxy != null) {
-                cfProxy.close();
-            }
-            t.printStackTrace();
-            System.exit(1);
         }
     }
-
-    @Override
-    public String getImplementationTitle() {
-        return "purge";
-    }
-
 }

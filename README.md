@@ -168,11 +168,10 @@ Tool for getting detailed cell statistics that can help identify issues with dat
 
 ### Usage ###
 
-    ic-sstable-tools cfstats [-r <limit>] [-n <num>] [-t <snapshot>] [-f <filter>] <keyspace> <column-family>
+    ic-sstable-tools cfstats [-n <num>] [-t <snapshot>] [-f <filter>] <keyspace> <column-family>
 | -h         | Display help                                                                    |
 |------------|---------------------------------------------------------------------------------|
-| -b         | Batch mode. Uses progress indicator that is friendly for running in batch jobs. |
-| -r <limit> | Limit read throughput to ratelimit MB/s                                         |
+| -b         | Batch mode. Uses progress indicator that is friendly for running in batch jobs. |                                   |
 | -n <num>   | Number of partitions to display                                                 |
 | -t <name>  | Snapshot to analyse. Snapshot is created if none is specified.                  |
 | -f <files> | Comma separated list of Data.db sstables to filter on                           |
@@ -301,12 +300,11 @@ Finds the largest reclaimable partitions (GCable). Intensive process, effectivel
 
 ### Usage ###
 
-    ic-sstable-tools purge [-r <limit>] [-n <num>] [-t <snapshot>] [-f <filter>] <keyspace> <column-family>
+    ic-sstable-tools purge [-n <num>] [-t <snapshot>] [-f <filter>] <keyspace> <column-family>
 
 | -h         | Display help                                                                    |
 |------------|---------------------------------------------------------------------------------|
 | -b         | Batch mode. Uses progress indicator that is friendly for running in batch jobs. |
-| -r <limit> | Limit read throughput to ratelimit MB/s                                         |
 | -n <num>   | Number of partitions to display                                                 |
 | -t <name>  | Snapshot to analyse. Snapshot is created if none is specified.                  |
 
