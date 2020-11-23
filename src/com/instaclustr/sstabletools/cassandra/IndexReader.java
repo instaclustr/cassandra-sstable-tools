@@ -1,16 +1,15 @@
 package com.instaclustr.sstabletools.cassandra;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
 import com.instaclustr.sstabletools.AbstractSSTableReader;
 import com.instaclustr.sstabletools.PartitionStatistics;
 import com.instaclustr.sstabletools.SSTableStatistics;
-import org.apache.cassandra.db.RowIndexEntry;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.io.sstable.format.Version;
 import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.cassandra.utils.ByteBufferUtil;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
 
 /**
  * SSTable Index.db reader.
@@ -67,7 +66,7 @@ public class IndexReader extends AbstractSSTableReader {
      * @throws IOException
      */
     private void skipData() throws IOException {
-        int size = version.storeRows() ? (int) reader.readUnsignedVInt() : reader.readInt();
+        int size = version.getVersion().compareTo("ma") >= 0 ? (int) reader.readUnsignedVInt() : reader.readInt();
         if (size > 0) {
             reader.skipBytesFully(size);
         }
@@ -81,14 +80,14 @@ public class IndexReader extends AbstractSSTableReader {
         try {
             if (nextKey == null) {
                 nextKey = ByteBufferUtil.readWithShortLength(reader);
-                nextPosition = version.storeRows() ? reader.readUnsignedVInt() : reader.readLong();
+                nextPosition = version.getVersion().compareTo("ma") > 0 ? reader.readUnsignedVInt() : reader.readLong();
                 skipData();
             }
             partitionStats = new PartitionStatistics(partitioner.decorateKey(nextKey));
             long position = nextPosition;
             if (!reader.isEOF()) {
                 nextKey = ByteBufferUtil.readWithShortLength(reader);
-                nextPosition = version.storeRows() ? reader.readUnsignedVInt() : reader.readLong();
+                nextPosition = version.getVersion().compareTo("ma") > 0 ? reader.readUnsignedVInt() : reader.readLong();
                 skipData();
                 partitionStats.size = nextPosition - position;
             } else {

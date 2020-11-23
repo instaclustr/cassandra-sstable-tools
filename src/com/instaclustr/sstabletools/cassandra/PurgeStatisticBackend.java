@@ -4,7 +4,10 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.instaclustr.sstabletools.PurgeStatistics;
 import com.instaclustr.sstabletools.PurgeStatisticsReader;
 import com.instaclustr.sstabletools.Util;
-import org.apache.cassandra.config.CFMetaData;
+import org.apache.cassandra.db.rows.UnfilteredRowIterators.MergeListener;
+import org.apache.cassandra.io.sstable.format.big.BigTableReader;
+import org.apache.cassandra.io.sstable.format.big.BigTableScanner;
+import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.filter.ColumnFilter;
 import org.apache.cassandra.db.partitions.PurgeFunction;
@@ -45,13 +48,14 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
      */
     private ColumnFamilyStore cfs;
 
+    // TODO unused rate limiter because sstable.getScanner() does not accept rate limiter anymore
     public PurgeStatisticBackend(ColumnFamilyStore cfs, Collection<org.apache.cassandra.io.sstable.format.SSTableReader> sstables, RateLimiter rateLimiter, int gcGrace) {
         this.gcBefore = Util.NOW_SECONDS - gcGrace;
         bytesRead = 0;
         readerQueue = new PriorityQueue<>(sstables.size());
         for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
             length += sstable.uncompressedLength();
-            ScannerWrapper scanner = new ScannerWrapper(sstable.descriptor.generation, sstable.getScanner(rateLimiter));
+            ScannerWrapper scanner = new ScannerWrapper(sstable.descriptor.generation, sstable.getScanner());
             if (scanner.next()) {
                 readerQueue.add(scanner);
             }
@@ -96,7 +100,7 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
                     row.metadata(),
                     row.columns(),
                     row.stats());
-            stats.size += serializedPartitionSize(header, row, ColumnFilter.all(cfs.metadata), MessagingService.current_version);
+            stats.size += serializedPartitionSize(header, row, ColumnFilter.all(cfs.metadata()), MessagingService.current_version);
             row = Transformation.apply(scannerWrapper.row, new Transformation<UnfilteredRowIterator>() {
                 @Override
                 protected Row applyToRow(Row row) {
@@ -119,7 +123,8 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
                 }
 
                 private void onUnfiltered(Unfiltered unfiltered) {
-                    stats.size += UnfilteredSerializer.serializer.serializedSize(unfiltered, header, MessagingService.current_version);
+                    SerializationHelper helper = new SerializationHelper(header);
+                    stats.size += UnfilteredSerializer.serializer.serializedSize(unfiltered, helper, MessagingService.current_version);
                 }
             });
             rows.add(row);
@@ -127,14 +132,14 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
         }
 
         // Merge rows together and grab column statistics.
-        UnfilteredRowIterator iter = UnfilteredRowIterators.merge(rows, Util.NOW_SECONDS);
+        UnfilteredRowIterator iter = UnfilteredRowIterators.merge(rows);
         iter = Transformation.apply(iter, new PurgeFunction(Util.NOW_SECONDS, gcBefore));
         CellCounter cellCounter = new CellCounter();
         iter = Transformation.apply(iter, cellCounter);
 
         long mergeSize = 0;
         if (iter.hasNext()) {
-            mergeSize = serializedSize(iter, ColumnFilter.all(cfs.metadata), MessagingService.current_version);
+            mergeSize = serializedSize(iter, ColumnFilter.all(cfs.metadata()), MessagingService.current_version);
         }
 
         stats.reclaimable = stats.size - mergeSize;
@@ -172,7 +177,8 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
         }
 
         if (hasStatic) {
-            size += UnfilteredSerializer.serializer.serializedSize(staticRow, header, version);
+            SerializationHelper helper = new SerializationHelper(header);
+            size += UnfilteredSerializer.serializer.serializedSize(staticRow, helper, version);
         }
 
         size += UnfilteredSerializer.serializer.serializedSizeEndOfPartition();
@@ -186,11 +192,13 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
                 iterator.columns(),
                 iterator.stats());
 
+        SerializationHelper helper = new SerializationHelper(header);
+
         long size = serializedPartitionSize(header, iterator, selection, version);
 
         while (iterator.hasNext()) {
             Unfiltered unfiltered = iterator.next();
-            size += UnfilteredSerializer.serializer.serializedSize(unfiltered, header, MessagingService.current_version);
+            size += UnfilteredSerializer.serializer.serializedSize(unfiltered, helper, MessagingService.current_version);
         }
 
         return size;

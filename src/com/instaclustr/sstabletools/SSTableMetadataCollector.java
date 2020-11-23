@@ -69,7 +69,7 @@ public class SSTableMetadataCollector {
             );
             CassandraProxy proxy = CassandraBackend.getInstance();
             List<SSTableMetadata> metadataCollection = proxy.getSSTableMetadata(ksName, cfName);
-            Class compactionClass = proxy.getCompactionClass(ksName, cfName);
+            Class<?> compactionClass = proxy.getCompactionClass(ksName, cfName);
             Comparator<SSTableMetadata> comparator = SSTableMetadata.GENERATION_COMPARATOR;
             if (compactionClass.equals(DateTieredCompactionStrategy.class)) {
                 comparator = SSTableMetadata.DTCS_COMPARATOR;

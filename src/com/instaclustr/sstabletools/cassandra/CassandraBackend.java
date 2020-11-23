@@ -3,8 +3,8 @@ package com.instaclustr.sstabletools.cassandra;
 import com.instaclustr.sstabletools.CassandraProxy;
 import com.instaclustr.sstabletools.ColumnFamilyProxy;
 import com.instaclustr.sstabletools.SSTableMetadata;
-import org.apache.cassandra.config.CFMetaData;
-import org.apache.cassandra.config.Schema;
+import org.apache.cassandra.schema.TableMetadata;
+import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.compaction.DateTieredCompactionStrategy;
@@ -46,10 +46,10 @@ public class CassandraBackend implements CassandraProxy {
     }
 
     public List<String> getColumnFamilies(String ksName) {
-        KeyspaceMetadata ksMetaData = Schema.instance.getKSMetaData(ksName);
+        KeyspaceMetadata ksMetaData = Schema.instance.getKeyspaceMetadata(ksName);
         List<String> names = new ArrayList<>(ksMetaData.tables.size() + ksMetaData.views.size());
-        for (CFMetaData cfMetaData : ksMetaData.tablesAndViews()) {
-            names.add(cfMetaData.cfName);
+        for (TableMetadata cfMetaData : ksMetaData.tablesAndViews()) {
+            names.add(cfMetaData.name);
         }
         Collections.sort(names);
         return names;
@@ -57,7 +57,7 @@ public class CassandraBackend implements CassandraProxy {
 
     private ColumnFamilyStore getStore(String ksName, String cfName) {
         // Start by validating keyspace name
-        if (Schema.instance.getKSMetaData(ksName) == null) {
+        if (Schema.instance.getKeyspaceMetadata(ksName) == null) {
             System.err.println(String.format("Reference to nonexistent keyspace: %s!", ksName));
             System.exit(1);
         }
@@ -106,10 +106,10 @@ public class CassandraBackend implements CassandraProxy {
             EstimatedHistogram rowSizeHistogram = table.getEstimatedPartitionSize();
             tableMetadata.maxRowSize = rowSizeHistogram.max();
             tableMetadata.avgRowSize = rowSizeHistogram.mean();
-            EstimatedHistogram columnCountHistogram = table.getEstimatedColumnCount();
+            EstimatedHistogram columnCountHistogram = table.getSSTableMetadata().estimatedCellPerPartitionCount;
             tableMetadata.maxColumnCount = columnCountHistogram.max();
             tableMetadata.avgColumnCount = columnCountHistogram.mean();
-            tableMetadata.droppableTombstones = table.getDroppableTombstonesBefore(NOW_SECONDS - table.metadata.params.gcGraceSeconds);
+            tableMetadata.droppableTombstones = table.getDroppableTombstonesBefore(NOW_SECONDS - table.metadata().params.gcGraceSeconds);
             tableMetadata.level = table.getSSTableLevel();
             tableMetadata.isRepaired = table.isRepaired();
             tableMetadata.repairedAt = table.getSSTableMetadata().repairedAt;
@@ -121,10 +121,10 @@ public class CassandraBackend implements CassandraProxy {
     public ColumnFamilyProxy getColumnFamily(String ksName, String cfName, String snapshotName, Collection<String> filter) {
         ColumnFamilyStore cfStore = getStore(ksName, cfName);
         try {
-            CFMetaData metaData = Schema.instance.getCFMetaData(ksName, cfName);
-            Class compactionClass = metaData.params.compaction.klass();
+            TableMetadata metaData = Schema.instance.getTableMetadata(ksName, cfName);
+            Class<?> compactionClass = metaData.params.compaction.klass();
             return new ColumnFamilyBackend(
-                    metaData.getKeyValidator(),
+                    metaData.partitionKeyType,
                     compactionClass.equals(DateTieredCompactionStrategy.class),
                     compactionClass.equals(TimeWindowCompactionStrategy.class),
                     cfStore,
@@ -141,7 +141,7 @@ public class CassandraBackend implements CassandraProxy {
     @Override
     public Class getCompactionClass(String ksName, String cfName) {
         try {
-            CFMetaData metaData = Schema.instance.getCFMetaData(ksName, cfName);
+            TableMetadata metaData = Schema.instance.getTableMetadata(ksName, cfName);
             return metaData.params.compaction.klass();
         } catch (Throwable t) {
             System.err.println(String.format("Error retrieving snapshot for %s.%s", ksName, cfName));

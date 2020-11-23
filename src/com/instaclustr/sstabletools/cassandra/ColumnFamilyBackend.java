@@ -52,7 +52,12 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
      */
     private Collection<org.apache.cassandra.io.sstable.format.SSTableReader> sstables;
 
-    public ColumnFamilyBackend(AbstractType<?> keyValidator, boolean isDTCS, boolean isTWCS, ColumnFamilyStore cfStore, String snapshotName, Collection<String> filter) throws IOException {
+    public ColumnFamilyBackend(AbstractType<?> keyValidator,
+                               boolean isDTCS,
+                               boolean isTWCS,
+                               ColumnFamilyStore cfStore,
+                               String snapshotName,
+                               Collection<String> filter) throws IOException {
         this.keyValidator = keyValidator;
         this.isDTCS = isDTCS;
         this.isTWCS = isTWCS;
@@ -65,7 +70,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
             this.clearSnapshot = true;
         }
         this.snapshotName = snapshotName;
-        this.sstables = cfStore.getSnapshotSSTableReader(snapshotName);
+        this.sstables = cfStore.getSnapshotSSTableReaders(snapshotName);
         if (filter != null) {
             List<org.apache.cassandra.io.sstable.format.SSTableReader> filteredSSTables = new ArrayList<>(sstables.size());
             for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
@@ -102,6 +107,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
     }
 
     @Override
+    // TODO rate limiter not used
     public Collection<SSTableReader> getDataReaders(RateLimiter rateLimiter) {
         Collection<SSTableReader> readers = new ArrayList<>(sstables.size());
         for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
@@ -115,8 +121,8 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
                                 sstable.getMinTimestamp(),
                                 sstable.getMaxTimestamp(),
                                 sstable.getSSTableLevel()),
-                        sstable.getScanner(rateLimiter),
-                        Util.NOW_SECONDS - sstable.metadata.params.gcGraceSeconds
+                        sstable.getScanner(),
+                        Util.NOW_SECONDS - sstable.metadata().params.gcGraceSeconds
                 ));
             } catch (Throwable t) {}
         }
@@ -125,7 +131,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
 
     @Override
     public PurgeStatisticsReader getPurgeStatisticsReader(RateLimiter rateLimiter) {
-        return new PurgeStatisticBackend(cfStore, sstables, rateLimiter, cfStore.metadata.params.gcGraceSeconds);
+        return new PurgeStatisticBackend(cfStore, sstables, rateLimiter, cfStore.metadata().params.gcGraceSeconds);
     }
 
     @Override

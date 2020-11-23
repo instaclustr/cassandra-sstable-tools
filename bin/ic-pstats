@@ -16,6 +16,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if [ "x$CASSANDRA_HOME" != "x" ]; then
+    CASSANDRA_INCLUDE=$CASSANDRA_HOME/bin/cassandra.in.sh
+fi
+
 if [ "x$CASSANDRA_INCLUDE" = "x" ]; then
     for include in "`dirname "$0"`/cassandra.in.sh" \
                    "$HOME/.cassandra.in.sh" \
