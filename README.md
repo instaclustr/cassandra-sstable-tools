@@ -3,6 +3,9 @@
 [![Maven Badge](https://img.shields.io/maven-central/v/com.instaclustr/ic-sstable-tools-4.0-beta3.svg?label=Maven%20Central)](link=https://search.maven.org/search?q=g:%22com.instaclustr%22%20AND%20a:%22ic-sstable-tools-4.0-beta3%22)
 [![Circle CI](https://circleci.com/gh/instaclustr/cassandra-sstable-tools.svg?style=svg)](link=https://circleci.com/gh/instaclustr/cassandra-sstable-tools)
 
+https://www.instaclustr.com/update-released-instaclustr-sstable-analysis-tools-apache-cassandra/
+https://www.instaclustr.com/instaclustr-open-sources-cassandra-sstable-analysis-tools/
+
 ## Compile
 ```
 $ git clone git@github.com:instaclustr/cassandra-sstable-tools.git
