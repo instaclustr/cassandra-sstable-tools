@@ -3,6 +3,8 @@ package com.instaclustr.sstabletools;
 import org.apache.cassandra.db.DecoratedKey;
 
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Partition statistics.
@@ -69,6 +71,14 @@ public class PartitionStatistics {
      */
     public long droppableTombstoneCount = 0;
 
+    public Map<Integer,Long> ttl = new HashMap<>();
+    private static final Long ZERO = 0L;
+
+    public void ttl(int key) {
+        long val = this.ttl.getOrDefault(key, ZERO);
+        this.ttl.put(key, val + 1);
+    }
+
     /**
      * Construct partition statistics.
      *
@@ -91,6 +101,16 @@ public class PartitionStatistics {
         result.cellCount = this.cellCount + p.cellCount;
         result.tombstoneCount = this.tombstoneCount + p.tombstoneCount;
         result.droppableTombstoneCount = this.droppableTombstoneCount + p.droppableTombstoneCount;
+        result.ttl  = new HashMap<>(p.ttl);
+        mergeTtl(result.ttl);
         return result;
+    }
+
+    public void mergeTtl(Map<Integer, Long> map) {
+        for (Map.Entry<Integer,Long> entry : this.ttl.entrySet()) {
+            Integer key = entry.getKey();
+            Long val = entry.getValue() + map.getOrDefault(key, ZERO);
+            map.put(key, val);
+        }
     }
 }

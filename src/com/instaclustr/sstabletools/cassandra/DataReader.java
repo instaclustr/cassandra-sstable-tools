@@ -75,6 +75,9 @@ public class DataReader extends AbstractSSTableReader {
                 }
             } else if (atom instanceof ExpiringCell) {
                 this.tableStats.expiringCellCount++;
+                ExpiringCell cell = (ExpiringCell) atom;
+                int ttl = cell.getTimeToLive();
+                this.partitionStats.ttl(ttl);
             } else if (atom instanceof CounterCell) {
                 this.tableStats.counterCellCount++;
             } else if (atom instanceof RangeTombstone) {

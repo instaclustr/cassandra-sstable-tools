@@ -134,7 +134,10 @@ public class ColumnFamilyStatisticsCollector {
 
             Histogram sizeHistogram = new Histogram();
             Histogram sstableHistogram = new Histogram();
+            Histogram tombstoneHistogram = new Histogram();
+            Map<Integer, Long> ttl = new HashMap<>();
             long partitionCount = 0;
+            long tombstoneCount = 0;
 
             MinMaxPriorityQueue<PartitionStatistics> largestPartitions = MinMaxPriorityQueue
                     .orderedBy(PartitionStatistics.SIZE_COMPARATOR)
@@ -166,10 +169,13 @@ public class ColumnFamilyStatisticsCollector {
                 largestPartitions.add(pStats);
                 if (pStats.tombstoneCount > 0) {
                     tombstoneLeaders.add(pStats);
+                    tombstoneHistogram.update(pStats.tombstoneCount);
+                    tombstoneCount += pStats.tombstoneCount;
                 }
                 tableCountLeaders.add(pStats);
                 sizeHistogram.update(pStats.size);
                 sstableHistogram.update(pStats.tableCount);
+                pStats.mergeTtl(ttl);
                 partitionCount++;
             }
             Snapshot sizeSnapshot = sizeHistogram.snapshot();
@@ -181,6 +187,7 @@ public class ColumnFamilyStatisticsCollector {
             TableBuilder tb = new TableBuilder();
             tb.setHeader("", "Size", "SSTable");
             tb.addRow("Count", Long.toString(partitionCount), "");
+            tb.addRow("Tombstones", Long.toString(tombstoneCount), "");
             tb.addRow("Total", Util.humanReadableByteCount(sizeSnapshot.getTotal()), Integer.toString(sstableReaders.size()));
             tb.addRow("Minimum", Util.humanReadableByteCount(sizeSnapshot.getMin()), Long.toString(sstableSnapshot.getMin()));
             tb.addRow("Average", Util.humanReadableByteCount(Math.round(sizeSnapshot.getMean())), String.format("%.1f", sstableSnapshot.getMean()));
@@ -193,6 +200,16 @@ public class ColumnFamilyStatisticsCollector {
             tb.addRow("99.9%", Util.humanReadableByteCount(Math.round(sizeSnapshot.getPercentile(0.999))), String.format("%.1f", sstableSnapshot.getPercentile(0.999)));
             tb.addRow("Maximum", Util.humanReadableByteCount(sizeSnapshot.getMax()), Long.toString(sstableSnapshot.getMax()));
             System.out.println(tb);
+
+            if (!ttl.isEmpty()) {
+                System.out.println("TTL:");
+                TableBuilder ttltb = new TableBuilder();
+                ttltb.setHeader("TTL", "Count");
+                for (Map.Entry<Integer, Long> entry : ttl.entrySet()) {
+                    ttltb.addRow(Util.humanReadableDateDiff(0, entry.getKey() * 1000L), Long.toString(entry.getValue()));
+                }
+                System.out.println(ttltb);
+            }
 
             System.out.println("Largest partitions:");
             TableBuilder lptb = new TableBuilder();
@@ -228,6 +245,22 @@ public class ColumnFamilyStatisticsCollector {
             System.out.println(wptb);
 
             if (!tombstoneLeaders.isEmpty()) {
+                System.out.println("Tombstone Histogram:");
+                Snapshot tombstoneSnapshot = tombstoneHistogram.snapshot();
+                TableBuilder tombtb = new TableBuilder();
+                tombtb.setHeader("Percentile", "Count");
+                tombtb.addRow("Minimum", Long.toString(tombstoneSnapshot.getMin()));
+                tombtb.addRow("Average", Long.toString(Math.round(tombstoneSnapshot.getMean())));
+                tombtb.addRow("std dev.", Long.toString(Math.round(tombstoneSnapshot.getStdDev())));
+                tombtb.addRow("50%", Long.toString(Math.round(tombstoneSnapshot.getPercentile(0.5))));
+                tombtb.addRow("75%", Long.toString(Math.round(tombstoneSnapshot.getPercentile(0.75))));
+                tombtb.addRow("90%", Long.toString(Math.round(tombstoneSnapshot.getPercentile(0.9))));
+                tombtb.addRow("95%", Long.toString(Math.round(tombstoneSnapshot.getPercentile(0.95))));
+                tombtb.addRow("99%", Long.toString(Math.round(tombstoneSnapshot.getPercentile(0.99))));
+                tombtb.addRow("99.9%", Long.toString(Math.round(tombstoneSnapshot.getPercentile(0.999))));
+                tombtb.addRow("Maximum", Long.toString(tombstoneSnapshot.getMax()));
+                System.out.println(tombtb);
+
                 System.out.println("Tombstone Leaders:");
                 TableBuilder tltb = new TableBuilder();
                 tltb.setHeader("Key", "Tombstones", "(droppable)", "Cells", "Size", "SSTable Count");
