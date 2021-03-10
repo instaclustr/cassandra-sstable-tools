@@ -40,7 +40,6 @@ public class DataReader extends AbstractSSTableReader {
         this.position = 0;
     }
 
-    @Override
     public boolean next() {
         if (!scanner.hasNext()) {
             scanner.close();
@@ -69,14 +68,15 @@ public class DataReader extends AbstractSSTableReader {
                         this.partitionStats.rowDeleteCount++;
                         this.tableStats.rowDeleteCount++;
                     }
-                    int clusteringCellCount = row.clustering().size();
-                    int cellCount = row.columns().size() + clusteringCellCount;
-                    this.partitionStats.cellCount += cellCount;
-                    this.tableStats.cellCount += cellCount;
-                    this.tableStats.liveCellCount += clusteringCellCount;
                     for (Cell cell : row.cells()) {
+                        this.partitionStats.cellCount++;
+                        this.tableStats.cellCount++;
                         if (cell.isLive(gcGrace)) {
                             this.tableStats.liveCellCount++;
+                        }
+                        int ttl = cell.ttl();
+                        if (ttl != Cell.NO_TTL) {
+                            this.partitionStats.ttl(ttl);
                         }
                         if (cell.isTombstone()) {
                             this.partitionStats.tombstoneCount++;
