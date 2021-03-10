@@ -3,7 +3,6 @@ package com.instaclustr.sstabletools.cassandra;
 import com.instaclustr.sstabletools.AbstractSSTableReader;
 import com.instaclustr.sstabletools.PartitionStatistics;
 import com.instaclustr.sstabletools.SSTableStatistics;
-import org.apache.cassandra.db.RowIndexEntry;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.io.sstable.format.Version;
 import org.apache.cassandra.io.util.RandomAccessReader;
