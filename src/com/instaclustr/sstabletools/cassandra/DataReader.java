@@ -53,6 +53,10 @@ public class DataReader extends AbstractSSTableReader {
             if (cell.isLive(gcGrace)) {
                 this.tableStats.liveCellCount++;
             }
+            int ttl = cell.ttl();
+            if (ttl != Cell.NO_TTL) {
+                this.partitionStats.ttl(ttl);
+            }
             if (cell.isTombstone()) {
                 this.partitionStats.tombstoneCount++;
                 this.tableStats.tombstoneCount++;

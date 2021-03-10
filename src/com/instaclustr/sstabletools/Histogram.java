@@ -65,7 +65,9 @@ public class Histogram {
                 reservoir[i] = value;
             }
         }
-        count++;
+        if (count < Integer.MAX_VALUE - 1) {
+            count++;
+        }
         total += value;
         min = Math.min(value, min);
         max = Math.max(value, max);
