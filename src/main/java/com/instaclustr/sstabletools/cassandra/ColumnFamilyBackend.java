@@ -66,7 +66,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
             this.clearSnapshot = false;
         } else {
             snapshotName = Util.generateSnapshotName();
-            cfStore.snapshotWithoutFlush(snapshotName, null, true);
+            cfStore.snapshotWithoutFlush(snapshotName, null, true, null);
             this.clearSnapshot = true;
         }
         this.snapshotName = snapshotName;
