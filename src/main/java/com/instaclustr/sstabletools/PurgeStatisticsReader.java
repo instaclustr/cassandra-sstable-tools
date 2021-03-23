@@ -11,5 +11,5 @@ public interface PurgeStatisticsReader extends Iterator<PurgeStatistics> {
      *
      * @return Read progress as percentage.
      */
-    public double getProgress();
+    double getProgress();
 }

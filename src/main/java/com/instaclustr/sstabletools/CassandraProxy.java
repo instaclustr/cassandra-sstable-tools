@@ -12,14 +12,14 @@ public interface CassandraProxy {
      *
      * @return Keyspace names
      */
-    public List<String> getKeyspaces();
+    List<String> getKeyspaces();
 
     /**
      *
      * @param ksName Keyspace name.
      * @return Column family names
      */
-    public List<String> getColumnFamilies(String ksName);
+    List<String> getColumnFamilies(String ksName);
 
     /**
      * Get metadata about sstables.
@@ -28,7 +28,7 @@ public interface CassandraProxy {
      * @param cfName Column family name.
      * @return SSTable metadata.
      */
-    public List<SSTableMetadata> getSSTableMetadata(String ksName, String cfName);
+    List<SSTableMetadata> getSSTableMetadata(String ksName, String cfName);
 
     /**
      * Get proxy to cassandra column family backend.
@@ -39,7 +39,7 @@ public interface CassandraProxy {
      * @param filter List of SSTables to analyse, or null to include all.
      * @return Proxy to cassandra column family backend.
      */
-    public ColumnFamilyProxy getColumnFamily(String ksName, String cfName, String snapshotName, Collection<String> filter);
+    ColumnFamilyProxy getColumnFamily(String ksName, String cfName, String snapshotName, Collection<String> filter);
 
     /**
      * Get the compaction class for column family.
@@ -48,5 +48,5 @@ public interface CassandraProxy {
      * @param cfName Column family name.
      * @return The compaction class.
      */
-    public Class getCompactionClass(String ksName, String cfName);
+    Class<?> getCompactionClass(String ksName, String cfName);
 }
