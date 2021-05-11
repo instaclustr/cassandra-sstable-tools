@@ -1,6 +1,5 @@
 package com.instaclustr.sstabletools.cli;
 
-import javax.validation.ValidationException;
 import java.io.PrintWriter;
 
 import com.instaclustr.sstabletools.PurgeStatisticsCollector;
@@ -36,13 +35,7 @@ public class CLI extends JarManifestVersionProvider implements Runnable {
             .setOut(new PrintWriter(System.err))
             .setColorScheme(new CommandLine.Help.ColorScheme.Builder().ansi(CommandLine.Help.Ansi.ON).build())
             .setExecutionExceptionHandler((ex, cmdLine, parseResult) -> {
-
-                if (ex instanceof ValidationException) {
-                    return 1;
-                }
-
                 ex.printStackTrace();
-
                 return 1;
             })
             .execute(args);
