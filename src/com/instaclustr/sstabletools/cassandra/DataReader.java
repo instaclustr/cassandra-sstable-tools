@@ -56,6 +56,8 @@ public class DataReader extends AbstractSSTableReader {
             int ttl = cell.ttl();
             if (ttl != Cell.NO_TTL) {
                 this.partitionStats.ttl(ttl);
+            } else {
+                this.partitionStats.ttl(PartitionStatistics.NO_TTL);
             }
             if (cell.isTombstone()) {
                 this.partitionStats.tombstoneCount++;

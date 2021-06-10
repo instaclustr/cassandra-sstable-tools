@@ -136,7 +136,7 @@ public class ColumnFamilyStatisticsCollector {
             Histogram sstableHistogram = new Histogram();
             Histogram rowHistogram = new Histogram();
             Histogram tombstoneHistogram = new Histogram();
-            Map<Integer, Long> ttl = new HashMap<>();
+            Map<Integer, Long> ttl = new TreeMap<>();
             long partitionCount = 0;
             long rowCount = 0;
             long rowDeleteCount = 0;
@@ -169,6 +169,7 @@ public class ColumnFamilyStatisticsCollector {
 
             PartitionReader partitionReader = new PartitionReader(sstableReaders, totalLength);
             PartitionStatistics pStats;
+            boolean hasTTL = false;
             ProgressBar progressBar = new ProgressBar("Analyzing SSTables...", interactive);
             progressBar.updateProgress(0.0);
             while ((pStats = partitionReader.read()) != null) {
@@ -189,6 +190,7 @@ public class ColumnFamilyStatisticsCollector {
                 rowHistogram.update(pStats.rowCount);
                 rowCount += pStats.rowCount;
                 rowDeleteCount += pStats.rowDeleteCount;
+                hasTTL = hasTTL || pStats.hasTTL;
                 pStats.mergeTtl(ttl);
                 partitionCount++;
             }
@@ -233,12 +235,16 @@ public class ColumnFamilyStatisticsCollector {
             rhtb.addRow("Maximum", Long.toString(rowSnapshot.getMax()));
             System.out.println(rhtb);
 
-            if (!ttl.isEmpty()) {
+            if (hasTTL) {
                 System.out.println("TTL:");
                 TableBuilder ttltb = new TableBuilder();
                 ttltb.setHeader("TTL", "Count");
                 for (Map.Entry<Integer, Long> entry : ttl.entrySet()) {
-                    ttltb.addRow(Util.humanReadableDateDiff(0, entry.getKey() * 1000L), Long.toString(entry.getValue()));
+                    if (entry.getKey() == PartitionStatistics.NO_TTL) {
+                        ttltb.addRow("NO_TTL", Long.toString(entry.getValue()));
+                    } else {
+                        ttltb.addRow(Util.humanReadableDateDiff(0, entry.getKey() * 1000L), Long.toString(entry.getValue()));
+                    }
                 }
                 System.out.println(ttltb);
             }
