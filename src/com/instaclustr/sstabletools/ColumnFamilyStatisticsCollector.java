@@ -135,7 +135,7 @@ public class ColumnFamilyStatisticsCollector {
             Histogram sizeHistogram = new Histogram();
             Histogram sstableHistogram = new Histogram();
             Histogram tombstoneHistogram = new Histogram();
-            Map<Integer, Long> ttl = new HashMap<>();
+            Map<Integer, Long> ttl = new TreeMap<>();
             long partitionCount = 0;
             long tombstoneCount = 0;
 
