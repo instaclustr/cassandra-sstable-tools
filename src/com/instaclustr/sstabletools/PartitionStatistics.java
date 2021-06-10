@@ -89,10 +89,16 @@ public class PartitionStatistics {
      */
     public long droppableTombstoneCount = 0;
 
+    public boolean hasTTL = false;
+    public final static int NO_TTL = -1;
+
     public Map<Integer,Long> ttl = new HashMap<>();
     private static final Long ZERO = 0L;
 
     public void ttl(int key) {
+        if (key != NO_TTL) {
+            hasTTL = true;
+        }
         long val = this.ttl.getOrDefault(key, ZERO);
         this.ttl.put(key, val + 1);
     }
@@ -121,6 +127,7 @@ public class PartitionStatistics {
         result.cellCount = this.cellCount + p.cellCount;
         result.tombstoneCount = this.tombstoneCount + p.tombstoneCount;
         result.droppableTombstoneCount = this.droppableTombstoneCount + p.droppableTombstoneCount;
+        result.hasTTL = this.hasTTL || p.hasTTL;
         result.ttl  = new HashMap<>(p.ttl);
         mergeTtl(result.ttl);
         return result;
