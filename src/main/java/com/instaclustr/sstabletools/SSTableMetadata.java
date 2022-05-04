@@ -1,6 +1,10 @@
 package com.instaclustr.sstabletools;
 
+import org.apache.cassandra.io.sstable.SSTableId;
+
 import java.util.Comparator;
+
+import static com.instaclustr.sstabletools.Util.compareIds;
 
 /**
  * Metadata statistics about sstable.
@@ -10,7 +14,7 @@ public class SSTableMetadata {
         @Override
         public int compare(SSTableMetadata o1, SSTableMetadata o2) {
             int cmp = Long.compare(o1.minTimestamp, o2.minTimestamp);
-            return cmp == 0 ? Integer.compare(o1.generation, o2.generation) : cmp;
+            return compareIds(cmp, o1.ssTableId, o2.ssTableId);
         }
     };
 
@@ -18,14 +22,14 @@ public class SSTableMetadata {
         @Override
         public int compare(SSTableMetadata o1, SSTableMetadata o2) {
             int cmp = Long.compare(o1.maxTimestamp, o2.maxTimestamp);
-            return cmp == 0 ? Integer.compare(o1.generation, o2.generation) : cmp;
+            return compareIds(cmp, o1.ssTableId, o2.ssTableId);
         }
     };
 
     public final static Comparator<SSTableMetadata> GENERATION_COMPARATOR = new Comparator<SSTableMetadata>() {
         @Override
         public int compare(SSTableMetadata o1, SSTableMetadata o2) {
-            return Integer.compare(o1.generation, o2.generation);
+            return compareIds(0, o1.ssTableId, o2.ssTableId);
         }
     };
 
@@ -33,7 +37,7 @@ public class SSTableMetadata {
         @Override
         public int compare(SSTableMetadata o1, SSTableMetadata o2) {
             int cmp = Long.compare(o1.level, o2.level);
-            return cmp == 0 ? Integer.compare(o1.generation, o2.generation) : cmp;
+            return compareIds(cmp, o1.ssTableId, o2.ssTableId);
         }
     };
 
@@ -45,7 +49,7 @@ public class SSTableMetadata {
     /**
      * SSTable generation.
      */
-    public int generation;
+    public SSTableId ssTableId;
 
     public long minTimestamp;
 

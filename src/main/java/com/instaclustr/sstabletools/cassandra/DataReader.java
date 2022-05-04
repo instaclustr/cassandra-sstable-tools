@@ -29,9 +29,11 @@ public class DataReader extends AbstractSSTableReader {
     private long position;
 
     /**
-     * Construct a reader for Index.db sstable file.
+     * Construct a reader for Data.db sstable file.
      *
      * @param tableStats  SSTable statistics.
+     * @param scanner scanner of sstables
+     * @param gcGrace gc_grace of table
      */
     public DataReader(SSTableStatistics tableStats, ISSTableScanner scanner, int gcGrace) {
         this.tableStats = tableStats;

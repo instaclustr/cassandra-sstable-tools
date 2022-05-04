@@ -1,16 +1,21 @@
 package com.instaclustr.sstabletools;
 
+import org.apache.cassandra.io.sstable.SSTableId;
+import org.apache.cassandra.io.sstable.SequenceBasedSSTableId;
+import org.apache.cassandra.io.sstable.UUIDBasedSSTableId;
+
 import java.util.Comparator;
 
 /**
  * SSTable statistics.
  */
 public class SSTableStatistics {
+
     public final static Comparator<SSTableStatistics> LIVENESS_COMPARATOR = new Comparator<SSTableStatistics>() {
         @Override
         public int compare(SSTableStatistics o1, SSTableStatistics o2) {
             int cmp = Long.compare(o1.getLiveness(), o2.getLiveness());
-            return cmp == 0 ? Integer.compare(o1.generation, o2.generation) : cmp;
+            return Util.compareIds(cmp, o1.ssTableId, o2.ssTableId);
         }
     };
 
@@ -18,7 +23,7 @@ public class SSTableStatistics {
         @Override
         public int compare(SSTableStatistics o1, SSTableStatistics o2) {
             int cmp = Long.compare(o1.minTimestamp, o2.minTimestamp);
-            return cmp == 0 ? Integer.compare(o1.generation, o2.generation) : cmp;
+            return Util.compareIds(cmp, o1.ssTableId, o2.ssTableId);
         }
     };
 
@@ -26,14 +31,14 @@ public class SSTableStatistics {
         @Override
         public int compare(SSTableStatistics o1, SSTableStatistics o2) {
             int cmp = Long.compare(o1.maxTimestamp, o2.maxTimestamp);
-            return cmp == 0 ? Integer.compare(o1.generation, o2.generation) : cmp;
+            return Util.compareIds(cmp, o1.ssTableId, o2.ssTableId);
         }
     };
 
     /**
-     * SSTable generation.
+     * SSTable id.
      */
-    public int generation;
+    public SSTableId ssTableId;
 
     /**
      * File name of SSTable Data.db.
@@ -123,15 +128,15 @@ public class SSTableStatistics {
     /**
      * Construct statistics record for SSTable.
      *
-     * @param generation         SSTable Generation
+     * @param ssTableId         SSTable id
      * @param filename           Filename of Data.db
      * @param uncompressedLength Uncompressed length of SSTable Data.db in bytes
      * @param minTimestamp       Minimum timestamp of SSTable
      * @param maxTimestamp       Maximum timestamp of SSTable
      * @param level              SSTable LTCS level
      */
-    public SSTableStatistics(int generation, String filename, long uncompressedLength, long minTimestamp, long maxTimestamp, int level) {
-        this.generation = generation;
+    public SSTableStatistics(SSTableId ssTableId, String filename, long uncompressedLength, long minTimestamp, long maxTimestamp, int level) {
+        this.ssTableId = ssTableId;
         this.filename = filename;
         this.size = uncompressedLength;
         this.minTimestamp = minTimestamp;

@@ -1,6 +1,7 @@
 package com.instaclustr.sstabletools;
 
 import org.apache.cassandra.db.DecoratedKey;
+import org.apache.cassandra.io.sstable.SSTableId;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -26,7 +27,7 @@ public class PurgeStatistics {
     /**
      * List of generations the key belongs to.
      */
-    public List<Integer> generations = new ArrayList<>();
+    public List<SSTableId> ssTableIds = new ArrayList<>();
 
     /**
      * Size in bytes of current partition.

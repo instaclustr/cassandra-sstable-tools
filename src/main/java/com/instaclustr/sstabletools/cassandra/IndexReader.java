@@ -50,6 +50,7 @@ public class IndexReader extends AbstractSSTableReader {
      *
      * @param tableStats  SSTable statistics.
      * @param reader      Reader to Index.db file.
+     * @param version     Version of SSTable
      * @param partitioner The sstable partitioner.
      */
     public IndexReader(SSTableStatistics tableStats, RandomAccessReader reader, Version version, IPartitioner partitioner) {

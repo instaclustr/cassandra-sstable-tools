@@ -21,9 +21,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * Proxy to Cassandra 3.0 backend.
+ * Proxy to Cassandra 4.1 backend.
  */
 public class CassandraBackend implements CassandraProxy {
     private static final CassandraBackend singleton = new CassandraBackend();
@@ -34,19 +35,22 @@ public class CassandraBackend implements CassandraProxy {
 
     static {
         Util.initDatabaseDescriptor();
-        Schema.instance.loadFromDisk(false);
+        Schema.instance.loadFromDisk();
     }
 
     private CassandraBackend() {}
 
     public List<String> getKeyspaces() {
-        List<String> names = new ArrayList<>(Schema.instance.getNonSystemKeyspaces());
-        Collections.sort(names);
-        return names;
+        return Schema.instance.getNonLocalStrategyKeyspaces()
+                     .stream()
+                     .map(ksmd -> ksmd.name).sorted().collect(Collectors.toList());
     }
 
     public List<String> getColumnFamilies(String ksName) {
         KeyspaceMetadata ksMetaData = Schema.instance.getKeyspaceMetadata(ksName);
+        if (ksMetaData == null) {
+            throw new IllegalStateException("Unknown keyspace " + ksMetaData.name);
+        }
         List<String> names = new ArrayList<>(ksMetaData.tables.size() + ksMetaData.views.size());
         for (TableMetadata cfMetaData : ksMetaData.tablesAndViews()) {
             names.add(cfMetaData.name);
@@ -58,7 +62,7 @@ public class CassandraBackend implements CassandraProxy {
     private ColumnFamilyStore getStore(String ksName, String cfName) {
         // Start by validating keyspace name
         if (Schema.instance.getKeyspaceMetadata(ksName) == null) {
-            System.err.println(String.format("Reference to nonexistent keyspace: %s!", ksName));
+            System.err.printf("Reference to nonexistent keyspace: %s!%n", ksName);
             System.exit(1);
         }
         Keyspace keyspace = Keyspace.open(ksName);
@@ -74,9 +78,9 @@ public class CassandraBackend implements CassandraProxy {
         try {
             return keyspace.getColumnFamilyStore(baseName);
         } catch (Throwable t) {
-            System.err.println(String.format(
-                    "The provided column family is not part of this cassandra keyspace: keyspace = %s, column family = %s",
-                    ksName, cfName));
+            System.err.printf(
+                    "The provided column family is not part of this cassandra keyspace: keyspace = %s, column family = %s%n",
+                    ksName, cfName);
             System.exit(1);
         }
         return null;
@@ -90,7 +94,7 @@ public class CassandraBackend implements CassandraProxy {
             SSTableMetadata tableMetadata = new SSTableMetadata();
             File dataFile = new File(table.descriptor.filenameFor(Component.DATA));
             tableMetadata.filename = dataFile.getName();
-            tableMetadata.generation = table.descriptor.generation;
+            tableMetadata.ssTableId = table.descriptor.id;
             try {
                 tableMetadata.fileTimestamp = Files.getLastModifiedTime(dataFile.toPath()).toMillis();
             } catch (IOException e) {
@@ -131,7 +135,7 @@ public class CassandraBackend implements CassandraProxy {
                     snapshotName,
                     filter);
         } catch (Throwable t) {
-            System.err.println(String.format("Error retrieving snapshot for %s.%s", ksName, cfName));
+            System.err.printf("Error retrieving snapshot for %s.%s%n", ksName, cfName);
             System.exit(1);
         }
 
@@ -144,7 +148,7 @@ public class CassandraBackend implements CassandraProxy {
             TableMetadata metaData = Schema.instance.getTableMetadata(ksName, cfName);
             return metaData.params.compaction.klass();
         } catch (Throwable t) {
-            System.err.println(String.format("Error retrieving snapshot for %s.%s", ksName, cfName));
+            System.err.printf("Error retrieving snapshot for %s.%s%n", ksName, cfName);
             System.exit(1);
         }
 

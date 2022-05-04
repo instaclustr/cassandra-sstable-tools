@@ -23,7 +23,7 @@ import picocli.CommandLine.Parameters;
     versionProvider = CLI.class,
     name = "sstables",
     usageHelpWidth = 128,
-    description = "Print out metadata for sstables the belong to a column family",
+    description = "Print out metadata for sstables that belong to a column family",
     mixinStandardHelpOptions = true
 )
 public class SSTableMetadataCollector implements Runnable {

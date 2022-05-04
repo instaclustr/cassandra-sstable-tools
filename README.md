@@ -37,7 +37,7 @@ Commands:
   cfstats   Detailed statistics about cells in a column family
   pstats    Partition size statistics for a column family
   purge     Statistics about reclaimable data for a column family
-  sstables  Print out metadata for sstables the belong to a column family
+  sstables  Print out metadata for sstables that belong to a column family
   summary   Summary information about all column families including how much of the data is repaired
 ```
 

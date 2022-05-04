@@ -1,19 +1,14 @@
 package com.instaclustr.sstabletools.cassandra;
 
-import com.google.common.util.concurrent.RateLimiter;
 import com.instaclustr.sstabletools.PurgeStatistics;
 import com.instaclustr.sstabletools.PurgeStatisticsReader;
 import com.instaclustr.sstabletools.Util;
-import org.apache.cassandra.db.rows.UnfilteredRowIterators.MergeListener;
-import org.apache.cassandra.io.sstable.format.big.BigTableReader;
-import org.apache.cassandra.io.sstable.format.big.BigTableScanner;
-import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.filter.ColumnFilter;
-import org.apache.cassandra.db.partitions.PurgeFunction;
 import org.apache.cassandra.db.rows.*;
 import org.apache.cassandra.db.transform.Transformation;
 import org.apache.cassandra.io.sstable.ISSTableScanner;
+import org.apache.cassandra.io.sstable.SSTableId;
 import org.apache.cassandra.net.MessagingService;
 import org.apache.cassandra.utils.ByteBufferUtil;
 
@@ -54,7 +49,7 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
         readerQueue = new PriorityQueue<>(sstables.size());
         for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
             length += sstable.uncompressedLength();
-            ScannerWrapper scanner = new ScannerWrapper(sstable.descriptor.generation, sstable.getScanner());
+            ScannerWrapper scanner = new ScannerWrapper(sstable.descriptor.id, sstable.getScanner());
             if (scanner.next()) {
                 readerQueue.add(scanner);
             }
@@ -127,7 +122,7 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
                 }
             });
             rows.add(row);
-            stats.generations.add(scannerWrapper.generation);
+            stats.ssTableIds.add(scannerWrapper.ssTableId);
         }
 
         // Merge rows together and grab column statistics.
@@ -285,7 +280,7 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
         /**
          * Generation of sstable being scanned.
          */
-        public int generation;
+        public SSTableId ssTableId;
 
         /**
          * SSTable scanner.
@@ -302,8 +297,8 @@ public class PurgeStatisticBackend implements PurgeStatisticsReader {
          */
         private long position;
 
-        public ScannerWrapper(int generation, ISSTableScanner scanner) {
-            this.generation = generation;
+        public ScannerWrapper(SSTableId ssTableId, ISSTableScanner scanner) {
+            this.ssTableId = ssTableId;
             this.scanner = scanner;
             this.position = 0;
         }

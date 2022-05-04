@@ -81,7 +81,7 @@ public class Histogram {
     }
 
     /**
-     * Snapshot histogram.
+     * @return snapshot histogram.
      */
     public Snapshot snapshot() {
         final int s = size();

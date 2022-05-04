@@ -33,6 +33,7 @@ public final class ProgressBar {
      * Construct progress bar.
      *
      * @param title Progress bar title
+     * @param interactive whether bar is interactive or not
      */
     public ProgressBar(String title, boolean interactive) {
         this.title = title;

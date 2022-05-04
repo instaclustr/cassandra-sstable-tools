@@ -1,6 +1,5 @@
 package com.instaclustr.sstabletools.cassandra;
 
-import com.google.common.util.concurrent.RateLimiter;
 import com.instaclustr.sstabletools.*;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.DecoratedKey;
@@ -9,6 +8,7 @@ import org.apache.cassandra.io.sstable.Component;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -66,7 +66,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
             this.clearSnapshot = false;
         } else {
             snapshotName = Util.generateSnapshotName();
-            cfStore.snapshotWithoutFlush(snapshotName, null, true, null);
+            cfStore.snapshotWithoutMemtable(snapshotName, null, true, null, null, Instant.now());
             this.clearSnapshot = true;
         }
         this.snapshotName = snapshotName;
@@ -91,7 +91,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
                 File dataFile = new File(sstable.descriptor.filenameFor(Component.DATA));
                 readers.add(new IndexReader(
                         new SSTableStatistics(
-                                sstable.descriptor.generation,
+                                sstable.descriptor.id,
                                 dataFile.getName(),
                                 sstable.uncompressedLength(),
                                 sstable.getMinTimestamp(),
@@ -101,7 +101,9 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
                         sstable.descriptor.version,
                         sstable.getPartitioner()
                 ));
-            } catch (Throwable t) {}
+            } catch (Throwable t) {
+
+            }
         }
         return readers;
     }
@@ -114,7 +116,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
                 File dataFile = new File(sstable.descriptor.filenameFor(Component.DATA));
                 readers.add(new DataReader(
                         new SSTableStatistics(
-                                sstable.descriptor.generation,
+                                sstable.descriptor.id,
                                 dataFile.getName(),
                                 sstable.uncompressedLength(),
                                 sstable.getMinTimestamp(),

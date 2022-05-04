@@ -1,5 +1,9 @@
 package com.instaclustr.sstabletools;
 
+import org.apache.cassandra.io.sstable.SSTableId;
+import org.apache.cassandra.io.sstable.SequenceBasedSSTableId;
+import org.apache.cassandra.io.sstable.UUIDBasedSSTableId;
+
 import java.text.SimpleDateFormat;
 import java.util.Random;
 import java.util.TimeZone;
@@ -23,6 +27,16 @@ public final class Util {
         UTC_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("Etc/UTC"));
 
         rand = new Random();
+    }
+
+    public static int compareIds(int cmp, SSTableId o1, SSTableId o2) {
+        if (o1 instanceof UUIDBasedSSTableId) {
+            return cmp == 0 ? ((UUIDBasedSSTableId) o1).compareTo((UUIDBasedSSTableId) o2) : cmp;
+        } else if (o1 instanceof SequenceBasedSSTableId) {
+            return cmp == 0 ? ((SequenceBasedSSTableId) o1).compareTo((SequenceBasedSSTableId) o2) : cmp;
+        } else {
+            throw new IllegalStateException("Unable to process SSTableId of type " + o1.getClass());
+        }
     }
 
     public static String humanReadableByteCount(long bytes) {

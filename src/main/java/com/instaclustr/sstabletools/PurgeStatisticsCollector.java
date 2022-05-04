@@ -94,7 +94,7 @@ public class PurgeStatisticsCollector implements Runnable {
                     cfProxy.formatKey(stats.key),
                     Util.humanReadableByteCount(stats.size),
                     Util.humanReadableByteCount(stats.reclaimable),
-                    stats.generations.toString()
+                    stats.ssTableIds.toString()
                 );
             }
             System.out.println(tb);
