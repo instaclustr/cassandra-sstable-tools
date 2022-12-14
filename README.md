@@ -1,6 +1,6 @@
 # Instaclustr SSTable tools
 
-[![Maven Badge](https://img.shields.io/maven-central/v/com.instaclustr/ic-sstable-tools-4.0.0.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.instaclustr%22%20AND%20a:%22ic-sstable-tools-4.0.0%22)
+[![Maven Badge](https://img.shields.io/maven-central/v/com.instaclustr/ic-sstable-tools-4.1.0.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.instaclustr%22%20AND%20a:%22ic-sstable-tools-4.1.0%22)
 [![Circle CI](https://circleci.com/gh/instaclustr/cassandra-sstable-tools.svg?style=svg)](https://circleci.com/gh/instaclustr/cassandra-sstable-tools)
 
 https://www.instaclustr.com/update-released-instaclustr-sstable-analysis-tools-apache-cassandra/
@@ -10,8 +10,8 @@ https://www.instaclustr.com/instaclustr-open-sources-cassandra-sstable-analysis-
 ```
 $ git clone git@github.com:instaclustr/cassandra-sstable-tools.git
 $ cd cassandra-sstable-tools
-# Select the correct branch for major version (default is cassandra-4.0)
-$ git checkout cassandra-4.0
+# Select the correct branch for major version (default is cassandra-4.1)
+$ git checkout cassandra-4.1
 ```
 
 ```
