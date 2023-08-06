@@ -89,7 +89,10 @@ public class PartitionStatistics {
      */
     public long droppableTombstoneCount = 0;
 
+    public final static int NO_TTL = -1;
+
     public Map<Integer,Long> ttl = new HashMap<>();
+
     private static final Long ZERO = 0L;
 
     public void ttl(int key) {
