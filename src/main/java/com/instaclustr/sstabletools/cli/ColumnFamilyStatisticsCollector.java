@@ -185,7 +185,11 @@ public class ColumnFamilyStatisticsCollector implements Runnable {
                 TableBuilder ttltb = new TableBuilder();
                 ttltb.setHeader("TTL", "Count");
                 for (Map.Entry<Integer, Long> entry : ttl.entrySet()) {
-                    ttltb.addRow(Util.humanReadableDateDiff(0, entry.getKey() * 1000L), Long.toString(entry.getValue()));
+                    if (entry.getKey() == PartitionStatistics.NO_TTL) {
+                        ttltb.addRow("NO_TTL", Long.toString(entry.getValue()));
+                    } else {
+                        ttltb.addRow(Util.humanReadableDateDiff(0, entry.getKey() * 1000L), Long.toString(entry.getValue()));
+                    }
                 }
                 System.out.println(ttltb);
             }
