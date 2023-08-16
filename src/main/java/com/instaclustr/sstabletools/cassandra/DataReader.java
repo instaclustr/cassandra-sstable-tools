@@ -3,6 +3,7 @@ package com.instaclustr.sstabletools.cassandra;
 import com.instaclustr.sstabletools.AbstractSSTableReader;
 import com.instaclustr.sstabletools.PartitionStatistics;
 import com.instaclustr.sstabletools.SSTableStatistics;
+import org.apache.cassandra.db.LivenessInfo;
 import org.apache.cassandra.db.rows.Cell;
 import org.apache.cassandra.db.rows.Row;
 import org.apache.cassandra.db.rows.Unfiltered;
@@ -68,15 +69,28 @@ public class DataReader extends AbstractSSTableReader {
                         this.partitionStats.rowDeleteCount++;
                         this.tableStats.rowDeleteCount++;
                     }
+                    LivenessInfo liveInfo = row.primaryKeyLivenessInfo();
+                    if (!liveInfo.isEmpty()) {
+                        int ttl = liveInfo.ttl();
+                        if (ttl != Cell.NO_TTL) {
+                            this.partitionStats.ttl(ttl);
+                        } else {
+                            this.partitionStats.ttl(PartitionStatistics.NO_TTL);
+                        }
+                    }
                     for (Cell cell : row.cells()) {
                         this.partitionStats.cellCount++;
                         this.tableStats.cellCount++;
                         if (cell.isLive(gcGrace)) {
                             this.tableStats.liveCellCount++;
                         }
-                        int ttl = cell.ttl();
-                        if (ttl != Cell.NO_TTL) {
-                            this.partitionStats.ttl(ttl);
+                        if (liveInfo.isEmpty() || cell.ttl() != liveInfo.ttl()) {
+                            int ttl = cell.ttl();
+                            if (ttl != Cell.NO_TTL) {
+                                this.partitionStats.ttl(ttl);
+                            } else {
+                                this.partitionStats.ttl(PartitionStatistics.NO_TTL);
+                            }
                         }
                         if (cell.isTombstone()) {
                             this.partitionStats.tombstoneCount++;
