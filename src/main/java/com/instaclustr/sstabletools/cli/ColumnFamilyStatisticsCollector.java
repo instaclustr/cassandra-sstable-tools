@@ -41,7 +41,7 @@ public class ColumnFamilyStatisticsCollector implements Runnable {
     @Option(names = {"-t"}, description = "Snapshot name", arity = "1")
     public String snapshotName;
 
-    @Option(names = {"-f"}, description = "Filter to sstables (comma separated", defaultValue = "")
+    @Option(names = {"-f"}, description = "Filter to sstables (comma separated)", defaultValue = "")
     public String filters;
 
     @Option(names = {"-b"}, description = "Batch mode", arity = "0")
@@ -323,9 +323,6 @@ public class ColumnFamilyStatisticsCollector implements Runnable {
 
             List<SSTableStatistics> sstableStats = partitionReader.getSSTableStatistics();
             Comparator<SSTableStatistics> comparator = SSTableStatistics.LIVENESS_COMPARATOR;
-            if (cfProxy.isDTCS()) {
-                comparator = SSTableStatistics.DTCS_COMPARATOR;
-            }
             if (cfProxy.isTWCS()) {
                 comparator = SSTableStatistics.TWCS_COMPARATOR;
             }

@@ -29,7 +29,7 @@ public class PurgeStatisticsCollector implements Runnable {
     @Option(names = {"-t"}, description = "Snapshot name", arity = "1")
     public String snapshotName;
 
-    @Option(names = {"-f"}, description = "Filter to sstables (comma separated", defaultValue = "")
+    @Option(names = {"-f"}, description = "Filter to sstables (comma separated)", defaultValue = "")
     public String filters;
 
     @Option(names = {"-b"}, description = "Batch mode", arity = "0")

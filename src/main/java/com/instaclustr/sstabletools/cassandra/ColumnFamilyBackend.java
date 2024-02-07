@@ -3,8 +3,16 @@ package com.instaclustr.sstabletools.cassandra;
 import com.instaclustr.sstabletools.*;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.DecoratedKey;
+import org.apache.cassandra.db.SerializationHeader;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.io.sstable.Component;
+import org.apache.cassandra.io.sstable.format.SSTableFormat;
+import org.apache.cassandra.io.sstable.format.big.BigFormat;
+import org.apache.cassandra.io.sstable.format.big.BigTableReader;
+import org.apache.cassandra.io.util.FileHandle;
+import org.apache.cassandra.utils.FilterFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,20 +20,20 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * ColumnFamilyProxy using Cassandra 3.5 backend.
  */
 public class ColumnFamilyBackend implements ColumnFamilyProxy {
+
+    private static final Logger logger = LoggerFactory.getLogger(ColumnFamilyBackend.class);
+
     /**
      * Key validator for column family.
      */
     private AbstractType<?> keyValidator;
-
-    /**
-     * Is column family using Date Tiered Compaction Strategy.
-     */
-    private boolean isDTCS;
 
     /**
      * Is column family using Time Window Compaction Strategy.
@@ -53,13 +61,11 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
     private Collection<org.apache.cassandra.io.sstable.format.SSTableReader> sstables;
 
     public ColumnFamilyBackend(AbstractType<?> keyValidator,
-                               boolean isDTCS,
                                boolean isTWCS,
                                ColumnFamilyStore cfStore,
                                String snapshotName,
                                Collection<String> filter) throws IOException {
         this.keyValidator = keyValidator;
-        this.isDTCS = isDTCS;
         this.isTWCS = isTWCS;
         this.cfStore = cfStore;
         if (snapshotName != null) {
@@ -74,7 +80,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
         if (filter != null) {
             List<org.apache.cassandra.io.sstable.format.SSTableReader> filteredSSTables = new ArrayList<>(sstables.size());
             for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
-                File dataFile = new File(sstable.descriptor.filenameFor(Component.DATA));
+                File dataFile = sstable.descriptor.fileFor(SSTableFormat.Components.DATA).toJavaIOFile();;
                 if (filter.contains(dataFile.getName())) {
                     filteredSSTables.add(sstable);
                 }
@@ -88,7 +94,24 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
         Collection<SSTableReader> readers = new ArrayList<>(sstables.size());
         for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
             try {
-                File dataFile = new File(sstable.descriptor.filenameFor(Component.DATA));
+                Set<Component> components = sstable.descriptor.discoverComponents();
+
+                Optional<Component> maybeIndexComponent = components.stream().filter(c -> c.name.contains("Index")).findFirst();
+                if (!maybeIndexComponent.isPresent()) {
+                    continue;
+                }
+
+                org.apache.cassandra.io.util.File indexFile = sstable.descriptor.fileFor(maybeIndexComponent.get());
+                FileHandle indexHandle = new FileHandle.Builder(indexFile).complete();
+
+                BigTableReader reader = new BigTableReader.Builder(sstable.descriptor)
+                        .setComponents(components)
+                        .setFilter(FilterFactory.AlwaysPresent)
+                        .setSerializationHeader(SerializationHeader.makeWithoutStats(cfStore.metadata()))
+                        .setIndexFile(indexHandle)
+                        .build(this.cfStore, false, false);
+
+                File dataFile = sstable.descriptor.fileFor(SSTableFormat.Components.DATA).toJavaIOFile();
                 readers.add(new IndexReader(
                         new SSTableStatistics(
                                 sstable.descriptor.id,
@@ -97,12 +120,12 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
                                 sstable.getMinTimestamp(),
                                 sstable.getMaxTimestamp(),
                                 sstable.getSSTableLevel()),
-                        sstable.openIndexReader(),
+                        reader.getIndexFile().createReader(),
                         sstable.descriptor.version,
                         sstable.getPartitioner()
                 ));
             } catch (Throwable t) {
-
+                logger.error("Error opening index readers", t);
             }
         }
         return readers;
@@ -113,7 +136,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
         Collection<SSTableReader> readers = new ArrayList<>(sstables.size());
         for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
             try {
-                File dataFile = new File(sstable.descriptor.filenameFor(Component.DATA));
+                File dataFile = sstable.descriptor.fileFor(SSTableFormat.Components.DATA).toJavaIOFile();
                 readers.add(new DataReader(
                         new SSTableStatistics(
                                 sstable.descriptor.id,
@@ -125,7 +148,9 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
                         sstable.getScanner(),
                         Util.NOW_SECONDS - sstable.metadata().params.gcGraceSeconds
                 ));
-            } catch (Throwable t) {}
+            } catch (Throwable t) {
+                logger.error("Error while getting data readers", t);
+            }
         }
         return readers;
     }
@@ -138,11 +163,6 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
     @Override
     public String formatKey(DecoratedKey key) {
         return keyValidator.getString(key.getKey());
-    }
-
-    @Override
-    public boolean isDTCS() {
-        return isDTCS;
     }
 
     @Override

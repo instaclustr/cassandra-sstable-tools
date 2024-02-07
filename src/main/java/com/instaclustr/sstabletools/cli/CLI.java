@@ -1,7 +1,5 @@
 package com.instaclustr.sstabletools.cli;
 
-import java.io.PrintWriter;
-
 import com.instaclustr.sstabletools.PurgeStatisticsCollector;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -9,18 +7,18 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Spec;
 
 @Command(
-    mixinStandardHelpOptions = true,
-    subcommands = {
-        ColumnFamilyStatisticsCollector.class,
-        PartitionSizeStatisticsCollector.class,
-        PurgeStatisticsCollector.class,
-        SSTableMetadataCollector.class,
-        SummaryCollector.class,
-    },
-    versionProvider = CLI.class,
-    usageHelpWidth = 128
+        mixinStandardHelpOptions = true,
+        subcommands = {
+                ColumnFamilyStatisticsCollector.class,
+                PartitionSizeStatisticsCollector.class,
+                PurgeStatisticsCollector.class,
+                SSTableMetadataCollector.class,
+                SummaryCollector.class,
+        },
+        versionProvider = CLI.class,
+        usageHelpWidth = 128
 )
-public class CLI extends JarManifestVersionProvider implements Runnable {
+public class CLI extends CLIApplication implements Runnable {
 
     @Spec
     private CommandSpec spec;
@@ -29,16 +27,12 @@ public class CLI extends JarManifestVersionProvider implements Runnable {
         main(args, true);
     }
 
+    public static void mainWithoutExit(String[] args) {
+        main(args, false);
+    }
+
     public static void main(String[] args, boolean exit) {
-        int exitCode = new CommandLine(new CLI())
-            .setErr(new PrintWriter(System.err))
-            .setOut(new PrintWriter(System.err))
-            .setColorScheme(new CommandLine.Help.ColorScheme.Builder().ansi(CommandLine.Help.Ansi.ON).build())
-            .setExecutionExceptionHandler((ex, cmdLine, parseResult) -> {
-                ex.printStackTrace();
-                return 1;
-            })
-            .execute(args);
+        int exitCode = execute(new CommandLine(new CLI()), args);
 
         if (exit) {
             System.exit(exitCode);
@@ -46,13 +40,13 @@ public class CLI extends JarManifestVersionProvider implements Runnable {
     }
 
     @Override
-    public String getImplementationTitle() {
-        return "ic-sstable-tools";
+    public void run() {
+        throw new CommandLine.ParameterException(spec.commandLine(), "Missing required sub-command.");
     }
 
     @Override
-    public void run() {
-        throw new CommandLine.ParameterException(spec.commandLine(), "Missing required sub-command.");
+    public String title() {
+        return "ic-sstable-tools";
     }
 }
 

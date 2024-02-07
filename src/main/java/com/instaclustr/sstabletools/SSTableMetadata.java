@@ -55,9 +55,9 @@ public class SSTableMetadata {
 
     public long maxTimestamp;
 
-    public int minLocalDeletionTime;
+    public long minLocalDeletionTime;
 
-    public int maxLocalDeletionTime;
+    public long maxLocalDeletionTime;
 
     public long fileTimestamp;
 

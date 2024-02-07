@@ -1,6 +1,5 @@
 package com.instaclustr.sstabletools;
 
-import com.google.common.util.concurrent.RateLimiter;
 import org.apache.cassandra.db.DecoratedKey;
 
 import java.util.Collection;
@@ -38,13 +37,6 @@ public interface ColumnFamilyProxy extends AutoCloseable {
      * @return Human readable partition key.
      */
     String formatKey(DecoratedKey key);
-
-    /**
-     * Is the column family using Date Tiered compaction strategy.
-     *
-     * @return True if column family is using Date Tiered compaction strategy.
-     */
-    boolean isDTCS();
 
     /**
      * Is the column family using Time Window compaction strategy.

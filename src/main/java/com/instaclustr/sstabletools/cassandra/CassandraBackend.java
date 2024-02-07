@@ -3,11 +3,11 @@ package com.instaclustr.sstabletools.cassandra;
 import com.instaclustr.sstabletools.CassandraProxy;
 import com.instaclustr.sstabletools.ColumnFamilyProxy;
 import com.instaclustr.sstabletools.SSTableMetadata;
+import org.apache.cassandra.io.sstable.format.SSTableFormat;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.Keyspace;
-import org.apache.cassandra.db.compaction.DateTieredCompactionStrategy;
 import org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy;
 import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.format.SSTableReader;
@@ -41,7 +41,7 @@ public class CassandraBackend implements CassandraProxy {
     private CassandraBackend() {}
 
     public List<String> getKeyspaces() {
-        return Schema.instance.getNonLocalStrategyKeyspaces()
+        return Schema.instance.distributedKeyspaces()
                      .stream()
                      .map(ksmd -> ksmd.name).sorted().collect(Collectors.toList());
     }
@@ -92,7 +92,7 @@ public class CassandraBackend implements CassandraProxy {
         List<SSTableMetadata> metaData = new ArrayList<>(tables.size());
         for (SSTableReader table : tables) {
             SSTableMetadata tableMetadata = new SSTableMetadata();
-            File dataFile = new File(table.descriptor.filenameFor(Component.DATA));
+            File dataFile = table.descriptor.fileFor(SSTableFormat.Components.DATA).toJavaIOFile();
             tableMetadata.filename = dataFile.getName();
             tableMetadata.ssTableId = table.descriptor.id;
             try {
@@ -129,7 +129,6 @@ public class CassandraBackend implements CassandraProxy {
             Class<?> compactionClass = metaData.params.compaction.klass();
             return new ColumnFamilyBackend(
                     metaData.partitionKeyType,
-                    compactionClass.equals(DateTieredCompactionStrategy.class),
                     compactionClass.equals(TimeWindowCompactionStrategy.class),
                     cfStore,
                     snapshotName,

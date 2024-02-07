@@ -67,7 +67,7 @@ public class IndexReader extends AbstractSSTableReader {
      * @throws IOException
      */
     private void skipData() throws IOException {
-        int size = version.getVersion().compareTo("ma") >= 0 ? (int) reader.readUnsignedVInt() : reader.readInt();
+        int size = version.version.compareTo("ma") >= 0 ? (int) reader.readUnsignedVInt() : reader.readInt();
         if (size > 0) {
             reader.skipBytesFully(size);
         }
@@ -81,14 +81,14 @@ public class IndexReader extends AbstractSSTableReader {
         try {
             if (nextKey == null) {
                 nextKey = ByteBufferUtil.readWithShortLength(reader);
-                nextPosition = version.getVersion().compareTo("ma") > 0 ? reader.readUnsignedVInt() : reader.readLong();
+                nextPosition = version.version.compareTo("ma") > 0 ? reader.readUnsignedVInt() : reader.readLong();
                 skipData();
             }
             partitionStats = new PartitionStatistics(partitioner.decorateKey(nextKey));
             long position = nextPosition;
             if (!reader.isEOF()) {
                 nextKey = ByteBufferUtil.readWithShortLength(reader);
-                nextPosition = version.getVersion().compareTo("ma") > 0 ? reader.readUnsignedVInt() : reader.readLong();
+                nextPosition = version.version.compareTo("ma") > 0 ? reader.readUnsignedVInt() : reader.readLong();
                 skipData();
                 partitionStats.size = nextPosition - position;
             } else {

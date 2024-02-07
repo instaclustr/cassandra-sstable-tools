@@ -10,7 +10,6 @@ import com.instaclustr.sstabletools.SSTableMetadata;
 import com.instaclustr.sstabletools.TableBuilder;
 import com.instaclustr.sstabletools.Util;
 import com.instaclustr.sstabletools.cassandra.CassandraBackend;
-import org.apache.cassandra.db.compaction.DateTieredCompactionStrategy;
 import org.apache.cassandra.db.compaction.LeveledCompactionStrategy;
 import org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy;
 import picocli.CommandLine.Command;
@@ -60,9 +59,6 @@ public class SSTableMetadataCollector implements Runnable {
         List<SSTableMetadata> metadataCollection = proxy.getSSTableMetadata(ksName, cfName);
         Class<?> compactionClass = proxy.getCompactionClass(ksName, cfName);
         Comparator<SSTableMetadata> comparator = SSTableMetadata.GENERATION_COMPARATOR;
-        if (compactionClass.equals(DateTieredCompactionStrategy.class)) {
-            comparator = SSTableMetadata.DTCS_COMPARATOR;
-        }
         if (compactionClass.equals(TimeWindowCompactionStrategy.class)) {
             comparator = SSTableMetadata.TWCS_COMPARATOR;
         }
