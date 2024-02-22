@@ -9,6 +9,7 @@ import org.apache.cassandra.db.compaction.DateTieredCompactionStrategy;
 import org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy;
 import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.format.SSTableReader;
+import org.apache.cassandra.locator.LocalStrategy;
 import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.schema.TableMetadata;
@@ -46,6 +47,7 @@ public class CassandraBackend implements CassandraProxy {
     public List<String> getKeyspaces() {
         return Schema.instance.distributedKeyspaces()
                 .stream()
+                .filter(keyspace -> keyspace.params.replication.klass != LocalStrategy.class)
                 .map(ksmd -> ksmd.name)
                 .sorted()
                 .collect(Collectors.toList());
