@@ -3,25 +3,29 @@ package com.instaclustr.sstabletools.cassandra;
 import com.instaclustr.sstabletools.CassandraProxy;
 import com.instaclustr.sstabletools.ColumnFamilyProxy;
 import com.instaclustr.sstabletools.SSTableMetadata;
-import org.apache.cassandra.schema.TableMetadata;
-import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.compaction.DateTieredCompactionStrategy;
 import org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy;
 import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.format.SSTableReader;
+import org.apache.cassandra.locator.LocalStrategy;
 import org.apache.cassandra.schema.KeyspaceMetadata;
+import org.apache.cassandra.schema.Schema;
+import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.tools.Util;
 import org.apache.cassandra.utils.EstimatedHistogram;
-
-import static com.instaclustr.sstabletools.Util.NOW_SECONDS;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.instaclustr.sstabletools.Util.NOW_SECONDS;
 
 /**
  * Proxy to Cassandra 4.1 backend.
@@ -41,9 +45,12 @@ public class CassandraBackend implements CassandraProxy {
     private CassandraBackend() {}
 
     public List<String> getKeyspaces() {
-        return Schema.instance.getNonLocalStrategyKeyspaces()
-                     .stream()
-                     .map(ksmd -> ksmd.name).sorted().collect(Collectors.toList());
+        return Schema.instance.distributedKeyspaces()
+                .stream()
+                .filter(keyspace -> keyspace.params.replication.klass != LocalStrategy.class)
+                .map(ksmd -> ksmd.name)
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     public List<String> getColumnFamilies(String ksName) {
