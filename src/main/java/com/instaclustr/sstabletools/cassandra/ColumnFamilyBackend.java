@@ -8,6 +8,10 @@ import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.format.SSTableFormat;
 import org.apache.cassandra.io.sstable.format.big.BigFormat;
 import org.apache.cassandra.io.sstable.format.bti.BtiFormat;
+import org.apache.cassandra.service.snapshot.SnapshotManager;
+import org.apache.cassandra.service.snapshot.SnapshotOptions;
+import org.apache.cassandra.service.snapshot.SnapshotType;
+import org.apache.cassandra.service.snapshot.TableSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,11 +69,22 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
             this.clearSnapshot = false;
         } else {
             snapshotName = Util.generateSnapshotName();
-            cfStore.snapshotWithoutMemtable(snapshotName, null, true, null, null, Instant.now());
+            SnapshotOptions options = new SnapshotOptions.Builder(snapshotName,
+                                                                  SnapshotType.MISC,
+                                                                  p -> true,
+                                                                  cfStore.getKeyspaceTableName())
+                    .creationTime(Instant.now())
+                    .skipFlush()
+                    .ephemeral()
+                    .build();
+
+            snapshotName = SnapshotOptions.getSnapshotName(options.type, options.tag, options.creationTime);
+            CassandraBackend.snapshotManager.takeSnapshot(options);
             this.clearSnapshot = true;
         }
         this.snapshotName = snapshotName;
-        this.sstables = cfStore.getSnapshotSSTableReaders(snapshotName);
+        this.sstables = TableSnapshot.getSnapshotSSTableReaders(cfStore, snapshotName);
+
         if (filter != null) {
             List<org.apache.cassandra.io.sstable.format.SSTableReader> filteredSSTables = new ArrayList<>(sstables.size());
             for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
@@ -165,7 +180,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
     @Override
     public void close() {
         if (clearSnapshot) {
-            cfStore.clearSnapshot(snapshotName);
+            SnapshotManager.instance.clearSnapshot(cfStore.getKeyspaceName(), cfStore.getTableName(), snapshotName);
             clearSnapshot = false;
         }
     }

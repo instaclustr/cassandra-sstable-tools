@@ -4,6 +4,7 @@ import com.instaclustr.sstabletools.CassandraProxy;
 import com.instaclustr.sstabletools.ColumnFamilyProxy;
 import com.instaclustr.sstabletools.SSTableMetadata;
 import org.apache.cassandra.io.sstable.format.SSTableFormat;
+import org.apache.cassandra.schema.SchemaProvider;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.db.ColumnFamilyStore;
@@ -12,6 +13,8 @@ import org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy;
 import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.format.SSTableReader;
 import org.apache.cassandra.schema.KeyspaceMetadata;
+import org.apache.cassandra.service.snapshot.SnapshotManager;
+import org.apache.cassandra.tcm.StubClusterMetadataService;
 import org.apache.cassandra.tools.Util;
 import org.apache.cassandra.utils.EstimatedHistogram;
 
@@ -24,10 +27,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Proxy to Cassandra 4.1 backend.
+ * Proxy to Cassandra backend.
  */
 public class CassandraBackend implements CassandraProxy {
     private static final CassandraBackend singleton = new CassandraBackend();
+    public static SnapshotManager snapshotManager;
+    public static SchemaProvider schemaProvider;
 
     public static CassandraProxy getInstance() {
         return singleton;
@@ -35,19 +40,21 @@ public class CassandraBackend implements CassandraProxy {
 
     static {
         Util.initDatabaseDescriptor();
-        Schema.instance.loadFromDisk();
+        StubClusterMetadataService.initializeForTools(true);
+        schemaProvider = Schema.instance;
+        snapshotManager = SnapshotManager.instance;
     }
 
     private CassandraBackend() {}
 
     public List<String> getKeyspaces() {
-        return Schema.instance.distributedKeyspaces()
+        return schemaProvider.distributedKeyspaces()
                      .stream()
                      .map(ksmd -> ksmd.name).sorted().collect(Collectors.toList());
     }
 
     public List<String> getColumnFamilies(String ksName) {
-        KeyspaceMetadata ksMetaData = Schema.instance.getKeyspaceMetadata(ksName);
+        KeyspaceMetadata ksMetaData = schemaProvider.getKeyspaceMetadata(ksName);
         if (ksMetaData == null) {
             throw new IllegalStateException("Unknown keyspace " + ksMetaData.name);
         }
@@ -125,7 +132,7 @@ public class CassandraBackend implements CassandraProxy {
     public ColumnFamilyProxy getColumnFamily(String ksName, String cfName, String snapshotName, Collection<String> filter) {
         ColumnFamilyStore cfStore = getStore(ksName, cfName);
         try {
-            TableMetadata metaData = Schema.instance.getTableMetadata(ksName, cfName);
+            TableMetadata metaData = schemaProvider.getTableMetadata(ksName, cfName);
             Class<?> compactionClass = metaData.params.compaction.klass();
             return new ColumnFamilyBackend(
                     metaData.partitionKeyType,
@@ -144,7 +151,7 @@ public class CassandraBackend implements CassandraProxy {
     @Override
     public Class getCompactionClass(String ksName, String cfName) {
         try {
-            TableMetadata metaData = Schema.instance.getTableMetadata(ksName, cfName);
+            TableMetadata metaData = schemaProvider.getTableMetadata(ksName, cfName);
             return metaData.params.compaction.klass();
         } catch (Throwable t) {
             System.err.printf("Error retrieving snapshot for %s.%s%n", ksName, cfName);
