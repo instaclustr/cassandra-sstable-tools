@@ -5,7 +5,7 @@ jobs:
     working_directory: ~/cassandra-sstable-tools
 
     docker:
-      - image: circleci/openjdk:8-jdk-stretch
+      - image: cimg/openjdk:11.0.21
 
     steps:
 
