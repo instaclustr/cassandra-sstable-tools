@@ -7,8 +7,10 @@ import org.apache.cassandra.db.SerializationHeader;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.format.SSTableFormat;
+import org.apache.cassandra.io.sstable.format.SSTableReaderWithFilter;
 import org.apache.cassandra.io.sstable.format.big.BigFormat;
 import org.apache.cassandra.io.sstable.format.big.BigTableReader;
+import org.apache.cassandra.io.sstable.format.bti.BtiTableReader;
 import org.apache.cassandra.io.util.FileHandle;
 import org.apache.cassandra.utils.FilterFactory;
 import org.slf4j.Logger;
@@ -96,20 +98,36 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
             try {
                 Set<Component> components = sstable.descriptor.discoverComponents();
 
-                Optional<Component> maybeIndexComponent = components.stream().filter(c -> c.name.contains("Index")).findFirst();
-                if (!maybeIndexComponent.isPresent()) {
+                Optional<Component> maybeBigIndexComponent = components.stream().filter(c -> c.name.contains("Index")).findFirst();
+                Optional<Component> maybeBtiIndexComponent = components.stream().filter(c -> c.name.contains("Partitions")).findFirst();
+
+                if (maybeBigIndexComponent.isEmpty() && maybeBtiIndexComponent.isEmpty()) {
                     continue;
                 }
 
-                org.apache.cassandra.io.util.File indexFile = sstable.descriptor.fileFor(maybeIndexComponent.get());
-                FileHandle indexHandle = new FileHandle.Builder(indexFile).complete();
+                Component indexComponent = maybeBtiIndexComponent.orElseGet(maybeBigIndexComponent::get);
 
-                BigTableReader reader = new BigTableReader.Builder(sstable.descriptor)
-                        .setComponents(components)
-                        .setFilter(FilterFactory.AlwaysPresent)
-                        .setSerializationHeader(SerializationHeader.makeWithoutStats(cfStore.metadata()))
-                        .setIndexFile(indexHandle)
-                        .build(this.cfStore, false, false);
+                org.apache.cassandra.io.util.File indexFile = sstable.descriptor.fileFor(indexComponent);
+                FileHandle indexHandle = new FileHandle.Builder(indexFile).complete();
+                SSTableReaderWithFilter reader;
+
+                if(maybeBtiIndexComponent.isPresent()) {
+                    reader = new BtiTableReader
+                            .Builder(sstable.descriptor)
+                            .setComponents(components)
+                            .setFilter(FilterFactory.AlwaysPresent)
+                            .setSerializationHeader(SerializationHeader.makeWithoutStats(cfStore.metadata()))
+                            .setRowIndexFile(indexHandle)
+                            .build(this.cfStore, false, false);
+                } else {
+
+                    reader = new BigTableReader.Builder(sstable.descriptor)
+                            .setComponents(components)
+                            .setFilter(FilterFactory.AlwaysPresent)
+                            .setSerializationHeader(SerializationHeader.makeWithoutStats(cfStore.metadata()))
+                            .setIndexFile(indexHandle)
+                            .build(this.cfStore, false, false);
+                }
 
                 File dataFile = sstable.descriptor.fileFor(SSTableFormat.Components.DATA).toJavaIOFile();
                 readers.add(new IndexReader(
@@ -120,7 +138,7 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
                                 sstable.getMinTimestamp(),
                                 sstable.getMaxTimestamp(),
                                 sstable.getSSTableLevel()),
-                        reader.getIndexFile().createReader(),
+                        reader.openDataReader(),
                         sstable.descriptor.version,
                         sstable.getPartitioner()
                 ));
