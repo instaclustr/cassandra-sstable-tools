@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     
     <groupId>com.instaclustr</groupId>
-    <artifactId>ic-sstable-tools-5.0.0</artifactId>
+    <artifactId>ic-sstable-tools-5.0.1</artifactId>
     <version>1.0.0</version>
     
     <name>Instaclustr SSTable Tools</name>
@@ -88,7 +88,7 @@
         <dependency>
             <groupId>org.apache.cassandra</groupId>
             <artifactId>cassandra-all</artifactId>
-            <version>5.0.0</version>
+            <version>5.0.1</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
