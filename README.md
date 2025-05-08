@@ -95,7 +95,7 @@ Print out sstable metadata for a column family. Useful in helping to tune compac
 
 
 ## pstats ##
-Tool for finding largest partitions. Reads the Index.db files so is relatively quick.
+Tool for finding largest partitions.
 
 ### Usage ###
 
@@ -321,6 +321,32 @@ Largest reclaimable partitions: Partitions with the largest amount of reclaimabl
 | Reclaim                                                                                | Reclaimable uncompressed size                |
 | Generations                                                                            | SSTable generations the partition belongs to |
 
+### Testing with CCM ###
+
+You can test this tool with the CCM tool (as it will save some time over needing to install and configure cassandra), simply do the following
+
+Locate the ccm installation directory on your machine, usually this is ~/.ccm
+
+Identify the version of cassandra you wish to test on. Run take the binary (target/ic-sstable-tools.jar) and copy it into the lib directory located in
+`
+~/.ccm/repository/\<version to test on>/lib/
+`
+
+For example
+`~/.ccm/repository/5.0.0/lib/`
+
+Now run
+
+`export CASSANDRA_INCLUDE=~/.ccm/<ccm cluster name>/<node name in cluster>/bin/cassandra.in.sh`
+
+For example
+
+`export CASSANDRA_INCLUDE=~/.ccm/test/node1/bin/cassandra.in.sh`
+
+
+and you should be able to run commands using the script located in the bin directory!
+
+`ic-sstable-tools pstats keyspace table`
 
 Please see https://www.instaclustr.com/support/documentation/announcements/instaclustr-open-source-project-status/ for Instaclustr support status of this project
 

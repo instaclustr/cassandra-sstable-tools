@@ -3,25 +3,18 @@ package com.instaclustr.sstabletools.cassandra;
 import com.instaclustr.sstabletools.*;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.DecoratedKey;
-import org.apache.cassandra.db.SerializationHeader;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.format.SSTableFormat;
 import org.apache.cassandra.io.sstable.format.big.BigFormat;
-import org.apache.cassandra.io.sstable.format.big.BigTableReader;
-import org.apache.cassandra.io.util.FileHandle;
-import org.apache.cassandra.utils.FilterFactory;
+import org.apache.cassandra.io.sstable.format.bti.BtiFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 /**
  * ColumnFamilyProxy using Cassandra 3.5 backend.
@@ -80,8 +73,8 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
         if (filter != null) {
             List<org.apache.cassandra.io.sstable.format.SSTableReader> filteredSSTables = new ArrayList<>(sstables.size());
             for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
-                File dataFile = sstable.descriptor.fileFor(SSTableFormat.Components.DATA).toJavaIOFile();;
-                if (filter.contains(dataFile.getName())) {
+                String filename = sstable.descriptor.fileFor(SSTableFormat.Components.DATA).name();
+                if (filter.contains(filename)) {
                     filteredSSTables.add(sstable);
                 }
             }
@@ -94,34 +87,33 @@ public class ColumnFamilyBackend implements ColumnFamilyProxy {
         Collection<SSTableReader> readers = new ArrayList<>(sstables.size());
         for (org.apache.cassandra.io.sstable.format.SSTableReader sstable : sstables) {
             try {
-                Set<Component> components = sstable.descriptor.discoverComponents();
+                Set<Component> discoveredComponents =
+                        sstable.descriptor.getComponents(Set.of(), Set.of(BtiFormat.Components.PARTITION_INDEX, BigFormat.Components.PRIMARY_INDEX));
 
-                Optional<Component> maybeIndexComponent = components.stream().filter(c -> c.name.contains("Index")).findFirst();
-                if (!maybeIndexComponent.isPresent()) {
+                if (discoveredComponents.isEmpty()) {
+                    //Nothing to read.
                     continue;
                 }
 
-                org.apache.cassandra.io.util.File indexFile = sstable.descriptor.fileFor(maybeIndexComponent.get());
-                FileHandle indexHandle = new FileHandle.Builder(indexFile).complete();
+                if(discoveredComponents.size() > 1){
+                    logger.error("Multiple Components found, this should never happen. Filename might be incorrect.");
+                }
 
-                BigTableReader reader = new BigTableReader.Builder(sstable.descriptor)
-                        .setComponents(components)
-                        .setFilter(FilterFactory.AlwaysPresent)
-                        .setSerializationHeader(SerializationHeader.makeWithoutStats(cfStore.metadata()))
-                        .setIndexFile(indexHandle)
-                        .build(this.cfStore, false, false);
+                Optional<Component> maybeComponent = discoveredComponents.stream().findFirst();
 
-                File dataFile = sstable.descriptor.fileFor(SSTableFormat.Components.DATA).toJavaIOFile();
+                org.apache.cassandra.io.util.File sstableIndexFile =
+                        sstable.descriptor.fileFor(maybeComponent.orElseThrow(() ->
+                                new IllegalStateException(String.format("No Component found on sstable %s, this should never happen.", sstable.getFilename()))));
+
                 readers.add(new IndexReader(
                         new SSTableStatistics(
                                 sstable.descriptor.id,
-                                dataFile.getName(),
+                                sstableIndexFile.name(),
                                 sstable.uncompressedLength(),
                                 sstable.getMinTimestamp(),
                                 sstable.getMaxTimestamp(),
                                 sstable.getSSTableLevel()),
-                        reader.getIndexFile().createReader(),
-                        sstable.descriptor.version,
+                        sstable.keyReader(),
                         sstable.getPartitioner()
                 ));
             } catch (Throwable t) {

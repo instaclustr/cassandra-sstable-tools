@@ -7,23 +7,17 @@ import com.instaclustr.sstabletools.AbstractSSTableReader;
 import com.instaclustr.sstabletools.PartitionStatistics;
 import com.instaclustr.sstabletools.SSTableStatistics;
 import org.apache.cassandra.dht.IPartitioner;
-import org.apache.cassandra.io.sstable.format.Version;
-import org.apache.cassandra.io.util.RandomAccessReader;
-import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.cassandra.io.sstable.KeyReader;
 
 /**
  * SSTable Index.db reader.
  */
 public class IndexReader extends AbstractSSTableReader {
-    /**
-     * Index.db reader.
-     */
-    private RandomAccessReader reader;
 
     /**
-     * SSTable version.
+     * The SSTable KeyReader.
      */
-    private Version version;
+    private KeyReader keyReader;
 
     /**
      * The sstable partitioner.
@@ -45,32 +39,19 @@ public class IndexReader extends AbstractSSTableReader {
      */
     private boolean completed = false;
 
+
     /**
      * Construct a reader for Index.db sstable file.
      *
      * @param tableStats  SSTable statistics.
-     * @param reader      Reader to Index.db file.
-     * @param version     Version of SSTable
+     * @param keyReader   KeyReader for sstable.
      * @param partitioner The sstable partitioner.
      */
-    public IndexReader(SSTableStatistics tableStats, RandomAccessReader reader, Version version, IPartitioner partitioner) {
+    public IndexReader(SSTableStatistics tableStats, KeyReader keyReader, IPartitioner partitioner) {
         this.tableStats = tableStats;
-        this.reader = reader;
-        this.version = version;
+        this.keyReader = keyReader;
         this.nextKey = null;
         this.partitioner = partitioner;
-    }
-
-    /**
-     * Skip data field on index entry.
-     *
-     * @throws IOException
-     */
-    private void skipData() throws IOException {
-        int size = version.version.compareTo("ma") >= 0 ? (int) reader.readUnsignedVInt() : reader.readInt();
-        if (size > 0) {
-            reader.skipBytesFully(size);
-        }
     }
 
     @Override
@@ -80,20 +61,18 @@ public class IndexReader extends AbstractSSTableReader {
         }
         try {
             if (nextKey == null) {
-                nextKey = ByteBufferUtil.readWithShortLength(reader);
-                nextPosition = version.version.compareTo("ma") > 0 ? reader.readUnsignedVInt() : reader.readLong();
-                skipData();
+                nextKey = keyReader.key();
+                nextPosition = keyReader.dataPosition();
             }
             partitionStats = new PartitionStatistics(partitioner.decorateKey(nextKey));
             long position = nextPosition;
-            if (!reader.isEOF()) {
-                nextKey = ByteBufferUtil.readWithShortLength(reader);
-                nextPosition = version.version.compareTo("ma") > 0 ? reader.readUnsignedVInt() : reader.readLong();
-                skipData();
+            if (!keyReader.isExhausted() && keyReader.advance()) {
+                nextKey = keyReader.key();
+                nextPosition = keyReader.dataPosition();
                 partitionStats.size = nextPosition - position;
             } else {
                 partitionStats.size = this.tableStats.size - position;
-                reader.close();
+                keyReader.close();
                 completed = true;
             }
             this.tableStats.partitionCount++;
@@ -103,7 +82,7 @@ public class IndexReader extends AbstractSSTableReader {
             e.printStackTrace();
             if (!completed) {
                 try {
-                    reader.close();
+                    keyReader.close();
                 } catch (Throwable t) {
                 }
             }
