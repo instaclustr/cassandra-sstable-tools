@@ -20,6 +20,7 @@
         <maven.gpg.plugin.version>1.6</maven.gpg.plugin.version>
         <maven.jar.plugin.version>3.1.1</maven.jar.plugin.version>
         <maven.javadoc.plugin.version>3.1.1</maven.javadoc.plugin.version>
+        <maven.javadoc.skip>false</maven.javadoc.skip>
         <maven.compiler.plugin.version>3.8.1</maven.compiler.plugin.version>
         <maven.git.command.plugin.version>4.9.10</maven.git.command.plugin.version>
         
@@ -106,10 +107,14 @@
                         <goals>
                             <goal>jar</goal>
                         </goals>
+                        <configuration>
+                            <skip>${maven.javadoc.skip}</skip>
+                            <failOnError>false</failOnError>
+                        </configuration>
                     </execution>
                 </executions>
                 <configuration>
-                    <source>${java.version}</source>
+                    <source>11</source>
                 </configuration>
             </plugin>
             <plugin>
@@ -306,7 +311,7 @@
                         <extensions>true</extensions>
                         <configuration>
                             <serverId>ossrh</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <nexusUrl>https://ossrh-staging-api.central.sonatype.com</nexusUrl>
                             <!--Use "mvn nexus-staging:release -P release" to push from the OSSRH staging repo to Maven Central-->
                             <autoReleaseAfterClose>false</autoReleaseAfterClose>
                         </configuration>
